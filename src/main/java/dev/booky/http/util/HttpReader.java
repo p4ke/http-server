@@ -25,13 +25,13 @@ public final class HttpReader {
                     + c + "' in remaining string: '" + this.getRemaining() + "'");
         }
         final int prevCursor = this.cursor;
-        this.cursor = charIndex;
-        return this.data.substring(prevCursor, charIndex + 1);
+        this.cursor = charIndex + 1;
+        return this.data.substring(prevCursor, charIndex);
     }
 
     public boolean skipLWS() {
         boolean ret = false;
-        while (HttpDefinitions.isLWS(this.peek())) {
+        while (this.isReadable() && HttpDefinitions.isLWS(this.peek())) {
             this.skip();
             ret = true;
         }
@@ -41,8 +41,9 @@ public final class HttpReader {
     public String readMultiLine() {
         final StringBuilder builder = new StringBuilder();
         do {
-            builder.append(this.readSingleLine());
+            builder.append(this.readSingleLine()).append(SP);
         } while (this.isReadable() && this.skipLWS());
+        builder.deleteCharAt(builder.length() - 1);
         return builder.toString();
     }
 

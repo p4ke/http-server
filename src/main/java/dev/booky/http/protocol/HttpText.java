@@ -13,7 +13,7 @@ package dev.booky.http.protocol;
  */
 public class HttpText {
 
-    private final String text;
+    //private final String text;
 
 
 }

@@ -2,13 +2,11 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-// TODO: casing of header names?
 // TODO test parsing headers
 @NullMarked
 public class HttpHeaders {
@@ -18,7 +16,11 @@ public class HttpHeaders {
     private final Map<String, List<String>> headers;
 
     private HttpHeaders(final Map<String, List<String>> headers) {
-        this.headers = Map.copyOf(headers);
+        this.headers = headers.entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                // header names are case-insensitive https://www.rfc-editor.org/rfc/rfc2616#section-4.2
+                .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), List.copyOf(entry.getValue())))
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public static HttpHeaders headers(final Map<String, List<String>> headers) {
@@ -41,13 +43,31 @@ public class HttpHeaders {
         final Map<String, List<String>> headers = new HashMap<>();
         do {
             final String name = reader.readLineUntil(':');
-            final String value = reader.skip().readMultiLine();
+            reader.skipLWS();
+            final String value = reader.readMultiLine();
             headers.computeIfAbsent(name, __ -> new ArrayList<>()).add(value);
-        } while (reader.skipCRLF());
+        } while (reader.isReadable() && reader.skipCRLF());
         return new HttpHeaders(headers);
     }
 
-    public List<String> getHeaders(String name) {
-        // FIXME
+    public List<String> getHeaders(final String name) {
+        return this.headers.getOrDefault(name.toLowerCase(Locale.ROOT), List.of());
+    }
+
+    public @Nullable String getHeader(final String name) {
+        final List<String> headers = this.getHeaders(name);
+        return headers.isEmpty() ? null : headers.getLast();
+    }
+
+    public Map<String, String> getHeaders() {
+        final Map<String, String> headers = new HashMap<>();
+        for (final Map.Entry<String, List<String>> entry : this.headers.entrySet()) {
+            headers.put(entry.getKey(), entry.getValue().getLast());
+        }
+        return Collections.unmodifiableMap(headers);
+    }
+
+    public Map<String, List<String>> getRawHeaders() {
+        return this.headers;
     }
 }

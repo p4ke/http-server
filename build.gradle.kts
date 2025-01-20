@@ -15,5 +15,13 @@ dependencies {
 }
 
 configure<JavaApplication> {
-    mainClass = "$group.http.HttpServer"
+    mainClass = "$group.http.HttpServerMain"
+}
+
+configure<JavaPluginExtension> {
+    withSourcesJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.ADOPTIUM
+    }
 }
