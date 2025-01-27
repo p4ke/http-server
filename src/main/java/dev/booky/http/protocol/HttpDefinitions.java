@@ -18,6 +18,14 @@ public final class HttpDefinitions {
     private HttpDefinitions() {
     }
 
+    public static boolean isHttpVersionSupported(final String httpVersion) {
+        // TODO find ref in rfc
+        return switch (httpVersion) {
+            case "1.1", "1.0" -> true;
+            default -> false;
+        };
+    }
+
     public static boolean isLWS(final char c) {
         // defined by https://www.rfc-editor.org/rfc/rfc2616#section-2.2
         return c == SP || c == HT || c == CR || c == LF;

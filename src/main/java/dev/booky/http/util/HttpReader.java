@@ -15,6 +15,22 @@ public final class HttpReader {
         this.data = data;
     }
 
+    public String readToken() {
+        return this.readLineUntilLWS();
+    }
+
+    public String readLineUntilLWS() {
+        final int initialCursor = this.cursor;
+        while (this.isReadable() && !HttpDefinitions.isLWS(this.peek())) {
+            this.skip();
+        }
+        if (!this.isReadable()) {
+            this.cursor = initialCursor;
+            throw new IllegalStateException("Can't findLWS in remaining string: '" + this.getRemaining() + "'");
+        }
+        return this.data.substring(initialCursor, this.cursor);
+    }
+
     public String readLineUntil(final char c) {
         final int charIndex = this.data.indexOf(c, this.cursor);
         if (charIndex < 0) {
@@ -41,7 +57,9 @@ public final class HttpReader {
     public String readMultiLine() {
         final StringBuilder builder = new StringBuilder();
         do {
-            builder.append(this.readSingleLine()).append(SP);
+            // strip trailing whitespace from line
+            final String line = this.readSingleLine().stripTrailing();
+            builder.append(line).append(SP);
         } while (this.isReadable() && this.skipLWS());
         builder.deleteCharAt(builder.length() - 1);
         return builder.toString();

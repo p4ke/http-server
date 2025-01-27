@@ -1,9 +1,46 @@
 package dev.booky.http.protocol;
 
+import dev.booky.http.util.HttpMethod;
+import dev.booky.http.util.HttpReader;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public class HttpMessage {
 
-    private static final String END_OF_LINE = HttpDefinitions.CRLF;
+    private final HttpMethod method;
+    private final HttpHeaders headers;
+
+    public HttpMessage(final HttpMethod method, final HttpHeaders headers) {
+        this.method = method;
+        this.headers = headers;
+    }
+
+    public static HttpMessage parseMessage(final HttpReader reader) {
+        // the protocol says to only skip CRLF, but we skip any whitespaces
+        // we encounter: https://www.rfc-editor.org/rfc/rfc2616#section-4.1
+        reader.skipLWS();
+
+        // Request-Line = Method SP Request-URI SP HTTP-Version CRLF
+        // (https://www.rfc-editor.org/rfc/rfc2616#section-5.1)
+        final HttpMethod method = HttpMethod.parseMethod(reader);
+        reader.skipLWS(); // skip any LWS instead of only SP
+        // TODO read request uri
+        reader.skipLWS(); // skip any LWS instead of only SP
+        // TODO read http version
+        reader.skipLWS(); // skip any LWS instead of only CRLF
+
+        final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
+
+        // TODO parse body
+
+        return new HttpMessage(method, headers);
+    }
+
+    public HttpMethod getMethod() {
+        return this.method;
+    }
+
+    public HttpHeaders getHeaders() {
+        return this.headers;
+    }
 }

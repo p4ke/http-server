@@ -1,73 +1,66 @@
 package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
+import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-// TODO test parsing headers
 @NullMarked
 public class HttpHeaders {
 
     private static final HttpHeaders EMPTY = new HttpHeaders(Map.of());
 
-    private final Map<String, List<String>> headers;
+    private final Map<String, String> headers;
 
-    private HttpHeaders(final Map<String, List<String>> headers) {
+    private HttpHeaders(final Map<String, String> headers) {
         this.headers = headers.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 // header names are case-insensitive https://www.rfc-editor.org/rfc/rfc2616#section-4.2
-                .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), List.copyOf(entry.getValue())))
+                .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()))
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public static HttpHeaders headers(final Map<String, List<String>> headers) {
-        return new HttpHeaders(headers);
+    @Contract("null, null -> null; !null, _ -> !null; _, !null -> !null")
+    private static @Nullable String joinHeaderValues(@Nullable final String value1, @Nullable final String value2) {
+        // this is fine behavior and should not change any semantics, according to
+        // the bottom of https://www.rfc-editor.org/rfc/rfc2616#section-4.2
+        if (value1 == null) return value2;
+        if (value2 == null) return value1;
+        return value1 + ',' + value2;
     }
 
-    public static HttpHeaders headersSimple(final Map<String, String> headers) {
-        final Map<String, List<String>> headers0 = new HashMap<>(headers.size());
-        for (final Map.Entry<String, String> entry : headers.entrySet()) {
-            headers0.put(entry.getKey(), List.of(entry.getValue()));
-        }
-        return new HttpHeaders(headers0);
+    public static HttpHeaders headers(final Map<String, String> headers) {
+        return new HttpHeaders(headers);
     }
 
     public static HttpHeaders headersEmpty() {
         return EMPTY;
     }
 
-    public static HttpHeaders headersParsed(final HttpReader reader) {
-        final Map<String, List<String>> headers = new HashMap<>();
+    public static HttpHeaders parseHeaders(final HttpReader reader) {
+        final Map<String, String> headers = new HashMap<>();
         do {
             final String name = reader.readLineUntil(':');
             reader.skipLWS();
             final String value = reader.readMultiLine();
-            headers.computeIfAbsent(name, __ -> new ArrayList<>()).add(value);
+            headers.compute(name, (key, existingValue) -> joinHeaderValues(existingValue, value));
         } while (reader.isReadable() && reader.skipCRLF());
         return new HttpHeaders(headers);
     }
 
-    public List<String> getHeaders(final String name) {
-        return this.headers.getOrDefault(name.toLowerCase(Locale.ROOT), List.of());
-    }
-
     public @Nullable String getHeader(final String name) {
-        final List<String> headers = this.getHeaders(name);
-        return headers.isEmpty() ? null : headers.getLast();
+        return this.headers.get(name.toLowerCase(Locale.ROOT));
     }
 
     public Map<String, String> getHeaders() {
-        final Map<String, String> headers = new HashMap<>();
-        for (final Map.Entry<String, List<String>> entry : this.headers.entrySet()) {
-            headers.put(entry.getKey(), entry.getValue().getLast());
-        }
-        return Collections.unmodifiableMap(headers);
+        return this.headers;
     }
 
-    public Map<String, List<String>> getRawHeaders() {
-        return this.headers;
+    @Override
+    public String toString() {
+        return this.headers.toString();
     }
 }

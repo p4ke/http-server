@@ -39,7 +39,7 @@ public class Logger {
 
     private String formatLine(final Level level, final String line) {
         final String time = TIME_FORMAT.format(LocalTime.now());
-        return time + level.formattedName + this.formattedName + line;
+        return time + level.formattedName + this.formattedName + line + '\n';
     }
 
     public void log(final Level level, final String message, final Object... args) {

@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     compileOnlyApi("org.jspecify:jspecify:1.0.0")
+    compileOnlyApi("org.jetbrains:annotations:26.0.2")
 }
 
 configure<JavaApplication> {
