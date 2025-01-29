@@ -1,12 +1,14 @@
 package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
+import dev.booky.http.util.StringUtil;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 
@@ -58,6 +60,28 @@ public class HttpHeaders {
         return new HttpHeaders(headers);
     }
 
+    public Stream<ParameterizedHeader> getParameterizedHeaders(final String name) {
+        final String header = this.getHeader(name);
+        if (header == null) {
+            return Stream.of();
+        }
+        return Arrays.stream(StringUtil.split(header, ','))
+                .map(value -> ParameterizedHeader.fromString(value.trim()));
+    }
+
+    public Stream<String> getHeaders(final String name) {
+        final String header = this.getHeader(name);
+        if (header == null) {
+            return Stream.of();
+        }
+        return Arrays.stream(StringUtil.split(header, ',')).map(String::trim);
+    }
+
+    public @Nullable ParameterizedHeader getParameterizedHeader(final String name) {
+        final String value = this.getHeader(name);
+        return value != null ? ParameterizedHeader.fromString(value) : null;
+    }
+
     public @Nullable String getHeader(final String name) {
         return this.headers.get(name.toLowerCase(Locale.ROOT));
     }
@@ -69,5 +93,25 @@ public class HttpHeaders {
     @Override
     public String toString() {
         return this.headers.toString();
+    }
+
+    public record ParameterizedHeader(String value, Map<String, String> parameters) {
+
+        public static ParameterizedHeader fromString(final String rawValue) {
+            // https://www.rfc-editor.org/rfc/rfc2616#section-3.6
+            final String[] split = StringUtil.split(rawValue, ';');
+            if (split.length == 1) {
+                return new ParameterizedHeader(split[0], Map.of());
+            }
+            final Map<String, String> parameters = new HashMap<>(split.length - 1);
+            for (int i = 1, len = split.length; i < len; ++i) {
+                final String param = split[i];
+                final int splitIdx = param.indexOf('=');
+                final String attribute = param.substring(splitIdx).trim();
+                final String value = StringUtil.removeQuoting(param.substring(splitIdx).trim());
+                parameters.put(attribute, value);
+            }
+            return new ParameterizedHeader(split[0].stripTrailing(), Collections.unmodifiableMap(parameters));
+        }
     }
 }

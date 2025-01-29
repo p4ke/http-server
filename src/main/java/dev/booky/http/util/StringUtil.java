@@ -6,9 +6,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 @NullMarked
-public final class SplitUtil {
+public final class StringUtil {
 
-    private SplitUtil() {
+    private StringUtil() {
+    }
+
+    private static boolean isQuote(final char c) {
+        return c == '\'' || c == '"';
+    }
+
+    public static String removeQuoting(final String string) {
+        if (string.length() < 2) {
+            return string; // no quoting possible
+        }
+        final boolean startQuote = isQuote(string.charAt(0));
+        final boolean endQuote = isQuote(string.charAt(string.length() - 1));
+        if (!startQuote && !endQuote) {
+            return string; // no quoting present
+        }
+        return string.substring(startQuote ? 1 : 0, string.length() - (endQuote ? 1 : 0));
     }
 
     /**

@@ -1,6 +1,6 @@
 package dev.booky.http.log;
 
-import dev.booky.http.util.SplitUtil;
+import dev.booky.http.util.StringUtil;
 import org.jspecify.annotations.NullMarked;
 
 import java.io.PrintStream;
@@ -50,7 +50,7 @@ public class Logger {
         final String formattedMessage = args.length != 0
                 ? message.formatted(args) : message;
 
-        final String[] lines = SplitUtil.split(formattedMessage, '\n');
+        final String[] lines = StringUtil.split(formattedMessage, '\n');
         for (int i = 0, len = lines.length; i < len; ++i) {
             stream.print(this.formatLine(level, lines[0]));
         }
