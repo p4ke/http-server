@@ -8,6 +8,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static dev.booky.http.protocol.HttpDefinitions.CRLF;
+
 @NullMarked
 public class HttpHeaders {
 
@@ -43,11 +45,16 @@ public class HttpHeaders {
     public static HttpHeaders parseHeaders(final HttpReader reader) {
         final Map<String, String> headers = new HashMap<>();
         do {
+            if (CRLF.equals(reader.peek(CRLF.length()))) {
+                // if there still is CRLF after the initial CRLF,
+                // end parsing of headers as the message body will follow
+                break;
+            }
             final String name = reader.readLineUntil(':');
             reader.skipLWS();
             final String value = reader.readMultiLine();
             headers.compute(name, (key, existingValue) -> joinHeaderValues(existingValue, value));
-        } while (reader.isReadable() && reader.skipCRLF());
+        } while (reader.skipCRLF() && reader.isReadable(CRLF.length()));
         return new HttpHeaders(headers);
     }
 

@@ -60,9 +60,11 @@ public final class HttpReader {
             // strip trailing whitespace from line
             final String line = this.readSingleLine().stripTrailing();
             builder.append(line).append(SP);
-        } while (this.isReadable() && this.skipLWS());
-        builder.deleteCharAt(builder.length() - 1);
-        return builder.toString();
+        } while (this.isReadable(CRLF.length())
+                // don't continue if CRLF follows
+                && !CRLF.equals(this.peek(CRLF.length()))
+                && this.skipLWS());
+        return builder.toString().stripTrailing();
     }
 
     public String readSingleLine() {
@@ -91,6 +93,10 @@ public final class HttpReader {
 
     public char read() {
         return this.data.charAt(this.cursor++);
+    }
+
+    public String peek(final int length) {
+        return this.data.substring(this.cursor, this.cursor + length);
     }
 
     public char peek() {
