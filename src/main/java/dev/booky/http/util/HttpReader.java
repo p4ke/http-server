@@ -83,7 +83,13 @@ public final class HttpReader {
         return true;
     }
 
-    public char next() {
+    public String read(final int length) {
+        final String ret = this.data.substring(this.cursor, this.cursor + length);
+        this.cursor += length;
+        return ret;
+    }
+
+    public char read() {
         return this.data.charAt(this.cursor++);
     }
 

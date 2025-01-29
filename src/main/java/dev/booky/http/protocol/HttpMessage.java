@@ -9,15 +9,18 @@ public class HttpMessage {
 
     private final HttpMethod method;
     private final HttpUri uri;
+    private final HttpVersion version;
     private final HttpHeaders headers;
 
     public HttpMessage(
             final HttpMethod method,
             final HttpUri uri,
+            final HttpVersion version,
             final HttpHeaders headers
     ) {
         this.method = method;
         this.uri = uri;
+        this.version = version;
         this.headers = headers;
     }
 
@@ -32,14 +35,14 @@ public class HttpMessage {
         reader.skipLWS(); // skip any LWS instead of only SP
         final HttpUri uri = HttpUri.parseUri(reader);
         reader.skipLWS(); // skip any LWS instead of only SP
-        // TODO read http version
+        final HttpVersion version = HttpVersion.parseVersion(reader);
         reader.skipLWS(); // skip any LWS instead of only CRLF
 
         final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
 
         // TODO parse body
 
-        return new HttpMessage(method, uri, headers);
+        return new HttpMessage(method, uri, version, headers);
     }
 
     public HttpMethod getMethod() {
@@ -48,6 +51,10 @@ public class HttpMessage {
 
     public HttpUri getUri() {
         return this.uri;
+    }
+
+    public HttpVersion getVersion() {
+        return this.version;
     }
 
     public HttpHeaders getHeaders() {
