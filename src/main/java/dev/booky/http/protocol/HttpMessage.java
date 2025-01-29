@@ -8,10 +8,16 @@ import org.jspecify.annotations.NullMarked;
 public class HttpMessage {
 
     private final HttpMethod method;
+    private final HttpUri uri;
     private final HttpHeaders headers;
 
-    public HttpMessage(final HttpMethod method, final HttpHeaders headers) {
+    public HttpMessage(
+            final HttpMethod method,
+            final HttpUri uri,
+            final HttpHeaders headers
+    ) {
         this.method = method;
+        this.uri = uri;
         this.headers = headers;
     }
 
@@ -24,7 +30,7 @@ public class HttpMessage {
         // (https://www.rfc-editor.org/rfc/rfc2616#section-5.1)
         final HttpMethod method = HttpMethod.parseMethod(reader);
         reader.skipLWS(); // skip any LWS instead of only SP
-        // TODO read request uri
+        final HttpUri uri = HttpUri.parseUri(reader);
         reader.skipLWS(); // skip any LWS instead of only SP
         // TODO read http version
         reader.skipLWS(); // skip any LWS instead of only CRLF
@@ -33,11 +39,15 @@ public class HttpMessage {
 
         // TODO parse body
 
-        return new HttpMessage(method, headers);
+        return new HttpMessage(method, uri, headers);
     }
 
     public HttpMethod getMethod() {
         return this.method;
+    }
+
+    public HttpUri getUri() {
+        return this.uri;
     }
 
     public HttpHeaders getHeaders() {

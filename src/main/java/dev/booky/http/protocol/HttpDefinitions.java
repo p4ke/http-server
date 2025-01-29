@@ -19,7 +19,7 @@ public final class HttpDefinitions {
     }
 
     public static boolean isHttpVersionSupported(final String httpVersion) {
-        // TODO find ref in rfc
+        // https://www.rfc-editor.org/rfc/rfc2616#section-3.1
         return switch (httpVersion) {
             case "1.1", "1.0" -> true;
             default -> false;
