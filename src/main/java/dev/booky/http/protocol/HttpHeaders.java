@@ -62,7 +62,7 @@ public class HttpHeaders {
 
     public Stream<ParameterizedHeader> getParameterizedHeaders(final String name) {
         final String header = this.getHeader(name);
-        if (header == null) {
+        if (header == null || header.isEmpty()) {
             return Stream.of();
         }
         return Arrays.stream(StringUtil.split(header, ','))
@@ -96,6 +96,14 @@ public class HttpHeaders {
     }
 
     public record ParameterizedHeader(String value, Map<String, String> parameters) {
+
+        public ParameterizedHeader(
+                final String value,
+                final Map<String, String> parameters
+        ) {
+            this.value = value;
+            this.parameters = Map.copyOf(parameters);
+        }
 
         public static ParameterizedHeader fromString(final String rawValue) {
             // https://www.rfc-editor.org/rfc/rfc2616#section-3.6

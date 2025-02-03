@@ -2,6 +2,7 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
+import dev.booky.http.util.HttpHeaderValues;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
@@ -11,17 +12,20 @@ public class HttpMessage {
     private final HttpUri uri;
     private final HttpVersion version;
     private final HttpHeaders headers;
+    private final byte[] body;
 
     public HttpMessage(
             final HttpMethod method,
             final HttpUri uri,
             final HttpVersion version,
-            final HttpHeaders headers
+            final HttpHeaders headers,
+            final byte[] body
     ) {
         this.method = method;
         this.uri = uri;
         this.version = version;
         this.headers = headers;
+        this.body = body;
     }
 
     public static HttpMessage parseMessage(final HttpReader reader) {
@@ -39,6 +43,7 @@ public class HttpMessage {
         reader.skipLWS(); // skip any LWS instead of only CRLF
 
         final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
+        final HttpHeaderValues headerValues = HttpHeaderValues.fromHeaders(headers);
 
         // TODO parse body
 

@@ -15,15 +15,10 @@ public final class HttpDefinitions {
     // static text sequences from https://www.rfc-editor.org/rfc/rfc2616#section-2.2
     public static final String CRLF = Character.toString(CR) + LF;
 
-    private HttpDefinitions() {
-    }
+    // utility constants
+    public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-    public static boolean isHttpVersionSupported(final String httpVersion) {
-        // https://www.rfc-editor.org/rfc/rfc2616#section-3.1
-        return switch (httpVersion) {
-            case "1.1", "1.0" -> true;
-            default -> false;
-        };
+    private HttpDefinitions() {
     }
 
     public static boolean isLWS(final char c) {
