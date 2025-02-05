@@ -41,10 +41,17 @@ public final class HttpHeaderValues {
         final ParameterizedHeader transferEncodingHeader = headers.getParameterizedHeader("Transfer-Encoding");
         final TransferEncoding transferEncoding = TransferEncoding.fromHeader(transferEncodingHeader);
 
+        // https://www.rfc-editor.org/rfc/rfc2616#section-14.17
         final ParameterizedHeader contentTypeHeader = headers.getParameterizedHeader("Content-Type");
         final MimeType contentType = MimeType.fromHeader(contentTypeHeader);
 
-        return new HttpHeaderValues(allowedEncodings, transferEncoding, , );
+        // https://www.rfc-editor.org/rfc/rfc2616#section-14.1
+        final List<MimeType> accepted = headers.getParameterizedHeaders("Accept")
+                .map(MimeType::fromHeader)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new HttpHeaderValues(allowedEncodings, transferEncoding, contentType, accepted);
     }
 
     public record TransferEncoding(
@@ -73,6 +80,14 @@ public final class HttpHeaderValues {
 
     public @Nullable TransferEncoding getTransferEncoding() {
         return this.transferEncoding;
+    }
+
+    public @Nullable MimeType getContentType() {
+        return this.contentType;
+    }
+
+    public List<MimeType> getAcceptedContentTypes() {
+        return this.acceptedContentTypes;
     }
 
     public enum TransferEncodingType {
