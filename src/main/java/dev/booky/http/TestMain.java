@@ -7,7 +7,7 @@ import dev.booky.http.util.HttpReader;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public class HttpServerMain {
+public class TestMain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Main");
 
