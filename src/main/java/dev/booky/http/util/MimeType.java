@@ -57,7 +57,22 @@ public class MimeType {
     public static final MimeType TYPE_SHELL_UTF8 = new MimeType("application", "x-sh", Map.of("charset", "utf8"));
     public static final MimeType TYPE_SVG_UTF8 = new MimeType("image", "svg+xml", Map.of("charset", "utf8"));
     public static final MimeType TYPE_TAR = new MimeType("application", "x-tar");
-    // TODO continue
+    public static final MimeType TYPE_TIFF = new MimeType("application", "x-tar");
+    public static final MimeType TYPE_TS = new MimeType("video", "mp2t");
+    public static final MimeType TYPE_TTF = new MimeType("font", "ttf");
+    public static final MimeType TYPE_WAV = new MimeType("audio", "wav");
+    public static final MimeType TYPE_WEBA = new MimeType("audio", "webm");
+    public static final MimeType TYPE_WEBM = new MimeType("video", "webm");
+    public static final MimeType TYPE_WEBP = new MimeType("image", "webp");
+    public static final MimeType TYPE_WOFF = new MimeType("font", "woff");
+    public static final MimeType TYPE_WOFF2 = new MimeType("font", "woff2");
+    public static final MimeType TYPE_XHTML_UTF8 = new MimeType("application", "xhtml+xml", Map.of("charset", "utf8"));
+    public static final MimeType TYPE_XLS = new MimeType("application", "vnd.ms-excel");
+    public static final MimeType TYPE_XLSX = new MimeType("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    public static final MimeType TYPE_XML_UTF8 = new MimeType("application", "xml", Map.of("charset", "utf8"));
+    public static final MimeType TYPE_XUL_UTF8 = new MimeType("application", "vnd.mozilla.xul+xml", Map.of("charset", "utf8"));
+    public static final MimeType TYPE_ZIP = new MimeType("application", "zip");
+    public static final MimeType TYPE_7ZIP = new MimeType("application", "x-7z-compressed");
 
     public static final MimeType TYPE_BIN = TYPE_OCTET_STREAM;
     public static final MimeType TYPE_PLAIN = TYPE_PLAIN_UTF8;
@@ -147,6 +162,22 @@ public class MimeType {
             case "sh" -> TYPE_SHELL_UTF8;
             case "svg" -> TYPE_SVG_UTF8;
             case "tar" -> TYPE_TAR;
+            case "tif", "tiff" -> TYPE_TIFF;
+            case "ts" -> TYPE_TS;
+            case "ttf" -> TYPE_TTF;
+            case "wav" -> TYPE_WAV;
+            case "weba" -> TYPE_WEBA;
+            case "webm" -> TYPE_WEBM;
+            case "webp" -> TYPE_WEBP;
+            case "woff" -> TYPE_WOFF;
+            case "woff2" -> TYPE_WOFF2;
+            case "xhtml" -> TYPE_XHTML_UTF8;
+            case "xls" -> TYPE_XLS;
+            case "xlsx" -> TYPE_XLSX;
+            case "xml" -> TYPE_XML_UTF8;
+            case "xul" -> TYPE_XUL_UTF8;
+            case "zip" -> TYPE_ZIP;
+            case "7z" -> TYPE_7ZIP;
             default -> TYPE_BIN; // "bin" and default
         };
     }
