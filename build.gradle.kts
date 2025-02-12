@@ -16,7 +16,7 @@ dependencies {
 }
 
 configure<JavaApplication> {
-    mainClass = "$group.http.HttpServerMain"
+    mainClass = "$group.http.ServerMain"
 }
 
 configure<JavaPluginExtension> {

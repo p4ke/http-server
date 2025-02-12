@@ -2,6 +2,9 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.StringUtil;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.Writer;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -58,6 +61,14 @@ public class HttpHeaders {
             headers.compute(name, (key, existingValue) -> joinHeaderValues(existingValue, value));
         } while (reader.skipCRLF() && reader.isReadable(CRLF.length()));
         return new HttpHeaders(headers);
+    }
+
+    public void writeTo(final BufferedWriter writer) throws IOException {
+        for (final Map.Entry<String, String> entry : this.headers.entrySet()) {
+            writer.write(entry.getKey());
+            writer.write(": ");
+            writer.write(entry.getValue());
+        }
     }
 
     public Stream<ParameterizedHeader> getParameterizedHeaders(final String name) {

@@ -3,10 +3,11 @@ package dev.booky.http.protocol;
 import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.HttpHeaderValues;
+import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public class HttpMessage {
+public class HttpRequest {
 
     private final HttpMethod method;
     private final HttpUri uri;
@@ -14,7 +15,7 @@ public class HttpMessage {
     private final HttpHeaders headers;
     private final byte[] body;
 
-    public HttpMessage(
+    public HttpRequest(
             final HttpMethod method,
             final HttpUri uri,
             final HttpVersion version,
@@ -28,7 +29,7 @@ public class HttpMessage {
         this.body = body;
     }
 
-    public static HttpMessage parseMessage(final HttpReader reader) {
+    public static HttpRequest parseMessage(final HttpReader reader) {
         // the protocol says to only skip CRLF, but we skip any whitespaces
         // we encounter: https://www.rfc-editor.org/rfc/rfc2616#section-4.1
         reader.skipLWS();
@@ -45,9 +46,11 @@ public class HttpMessage {
         final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
         final HttpHeaderValues headerValues = HttpHeaderValues.fromHeaders(headers);
 
-        // TODO parse body
+        // TODO respect header values
+        final String bodyString = reader.getRemaining();
+        final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 
-        return new HttpMessage(method, uri, version, headers);
+        return new HttpRequest(method, uri, version, headers, bodyBytes);
     }
 
     public HttpMethod getMethod() {
@@ -64,5 +67,9 @@ public class HttpMessage {
 
     public HttpHeaders getHeaders() {
         return this.headers;
+    }
+
+    public byte[] getBody() {
+        return this.body;
     }
 }

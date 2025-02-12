@@ -2,7 +2,7 @@ package dev.booky.http;
 
 import dev.booky.http.log.Logger;
 import dev.booky.http.log.LoggerFactory;
-import dev.booky.http.protocol.HttpMessage;
+import dev.booky.http.protocol.HttpRequest;
 import dev.booky.http.util.HttpReader;
 import org.jspecify.annotations.NullMarked;
 
@@ -19,7 +19,7 @@ public class TestMain {
                 + "\r\n"
                 + "Message body\r\n"
                 + "jsdnfkjdfgnkjsdf");
-        final HttpMessage message = HttpMessage.parseMessage(reader);
+        final HttpRequest message = HttpRequest.parseMessage(reader);
         LOGGER.info(message.getMethod().toString());
         LOGGER.info(message.getUri().toString());
         LOGGER.info(message.getVersion().toString());
