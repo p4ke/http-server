@@ -1,34 +1,43 @@
 package dev.booky.http.util;
 
 import dev.booky.http.protocol.HttpDefinitions;
+import java.io.IOException;
+import java.io.Reader;
 import org.jspecify.annotations.NullMarked;
 
-import static dev.booky.http.protocol.HttpDefinitions.*;
+import static dev.booky.http.protocol.HttpDefinitions.CR;
+import static dev.booky.http.protocol.HttpDefinitions.CRLF;
+import static dev.booky.http.protocol.HttpDefinitions.LF;
+import static dev.booky.http.protocol.HttpDefinitions.SP;
 
 @NullMarked
 public final class HttpReader {
 
-    private final String data;
-    private int cursor = 0;
+    private final Reader reader;
 
-    public HttpReader(final String data) {
-        this.data = data;
+    public HttpReader(final Reader reader) {
+        this.reader = reader;
     }
 
     public String readToken() {
         return this.readLineUntilLWS();
     }
 
-    public String readLineUntilLWS() {
-        final int initialCursor = this.cursor;
-        while (this.isReadable() && !HttpDefinitions.isLWS(this.peek())) {
-            this.skip();
+    public String readLineUntilLWS() throws IOException {
+        // TODO
+        this.reader.mark(128);
+        int charCount = 0;
+        char c;
+        while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
+            ++charCount;
         }
-        if (!this.isReadable()) {
-            this.cursor = initialCursor;
-            throw new IllegalStateException("Can't findLWS in remaining string: '" + this.getRemaining() + "'");
+        this.reader.reset();
+        if (c == -1) {
+            throw new IllegalStateException("Can't find LWS in remaining string: '" + this.getRemaining() + "'");
         }
-        return this.data.substring(initialCursor, this.cursor);
+        final char[] chars = new char[charCount];
+        this.reader.read(chars);
+        return new String(chars);
     }
 
     public String readLineUntil(final char c) {
