@@ -1,6 +1,7 @@
 package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
+import java.io.IOException;
 
 public final class HttpVersion {
 
@@ -17,7 +18,7 @@ public final class HttpVersion {
         this.string = "HTTP/%s.%s".formatted(major, major);
     }
 
-    public static HttpVersion parseVersion(final HttpReader reader) {
+    public static HttpVersion parseVersion(final HttpReader reader) throws IOException {
         final String version = reader.read("HTTP/0.0".length());
         return switch (version) {
             case "HTTP/1.0" -> HTTP_1_0;

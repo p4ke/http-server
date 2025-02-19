@@ -21,7 +21,7 @@ public final class HttpDefinitions {
     private HttpDefinitions() {
     }
 
-    public static boolean isLWS(final char c) {
+    public static boolean isLWS(final int c) {
         // defined by https://www.rfc-editor.org/rfc/rfc2616#section-2.2
         return c == SP || c == HT || c == CR || c == LF;
     }

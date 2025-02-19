@@ -4,6 +4,7 @@ import dev.booky.http.log.Logger;
 import dev.booky.http.log.LoggerFactory;
 import dev.booky.http.protocol.HttpRequest;
 import dev.booky.http.util.HttpReader;
+import java.io.IOException;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
@@ -11,7 +12,7 @@ public class TestMain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Main");
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws IOException {
         LOGGER.info("Hello %s", "World");
         final HttpReader reader = new HttpReader(""
                 + "GET /pub/WWW/TheProject.html HTTP/1.1\r\n"

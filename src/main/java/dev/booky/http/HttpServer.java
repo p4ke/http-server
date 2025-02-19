@@ -5,9 +5,12 @@ import dev.booky.http.log.LoggerFactory;
 import dev.booky.http.protocol.HttpRequest;
 import dev.booky.http.protocol.HttpResponse;
 import dev.booky.http.util.HttpReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -70,9 +73,10 @@ public class HttpServer implements AutoCloseable {
         final Socket socket = this.socket.accept();
         this.executor.execute(() -> {
             LOGGER.info("Accepted socket connection from %s", socket.getRemoteSocketAddress());
-            try (socket; final InputStream input = socket.getInputStream()) {
-                final String content = new String(input.readAllBytes());
-                final HttpReader reader = new HttpReader(content);
+            try (socket; final InputStream input = socket.getInputStream();
+                 final Reader inputReader = new InputStreamReader(input);
+                 final BufferedReader bufferedReader = new BufferedReader(inputReader)) {
+                final HttpReader reader = new HttpReader(bufferedReader);
                 this.handleMessage(socket, HttpRequest.parseMessage(reader));
             } catch (final IOException exception) {
                 throw new RuntimeException(exception);
@@ -97,6 +101,9 @@ public class HttpServer implements AutoCloseable {
                     ).stripIndent().getBytes(StandardCharsets.UTF_8)
             );
             resp.writeTo(output);
+            LOGGER.info("Handled %s %s %s", message.getVersion(), message.getMethod(), message.getUri());
+        } catch (final Throwable throwable) {
+            LOGGER.error("Handled %s %s %s with error", message.getVersion(), message.getMethod(), message.getUri(), throwable);
         }
     }
 

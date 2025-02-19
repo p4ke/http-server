@@ -47,7 +47,7 @@ public class HttpHeaders {
         return EMPTY;
     }
 
-    public static HttpHeaders parseHeaders(final HttpReader reader) {
+    public static HttpHeaders parseHeaders(final HttpReader reader) throws IOException {
         final Map<String, String> headers = new HashMap<>();
         do {
             if (CRLF.equals(reader.peek(CRLF.length()))) {

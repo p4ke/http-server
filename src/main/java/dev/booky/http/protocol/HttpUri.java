@@ -1,6 +1,7 @@
 package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
+import java.io.IOException;
 import org.jspecify.annotations.NullMarked;
 
 import java.net.URI;
@@ -9,7 +10,7 @@ import java.net.URI;
 @NullMarked
 public sealed interface HttpUri {
 
-    static HttpUri parseUri(final HttpReader reader) {
+    static HttpUri parseUri(final HttpReader reader) throws IOException {
         final String string = reader.readLineUntilLWS();
         return switch (string) {
             case StarImpl.STAR_STRING -> StarImpl.INSTANCE;

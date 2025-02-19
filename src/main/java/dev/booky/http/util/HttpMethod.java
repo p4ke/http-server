@@ -1,5 +1,6 @@
 package dev.booky.http.util;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public final class HttpMethod {
@@ -20,7 +21,7 @@ public final class HttpMethod {
         this.method = method;
     }
 
-    public static HttpMethod parseMethod(final HttpReader reader) {
+    public static HttpMethod parseMethod(final HttpReader reader) throws IOException {
         reader.skipLWS();
         final String method = reader.readToken();
         return switch (method) {

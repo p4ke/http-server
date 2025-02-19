@@ -3,6 +3,7 @@ package dev.booky.http.util;
 import dev.booky.http.protocol.HttpDefinitions;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import org.jspecify.annotations.NullMarked;
 
 import static dev.booky.http.protocol.HttpDefinitions.CR;
@@ -13,21 +14,26 @@ import static dev.booky.http.protocol.HttpDefinitions.SP;
 @NullMarked
 public final class HttpReader {
 
+    private static final int REMAINING_TEXT_CHAR_BUFFER_SIZE = 8192;
+
     private final Reader reader;
+
+    public HttpReader(final String data) {
+        this(new StringReader(data));
+    }
 
     public HttpReader(final Reader reader) {
         this.reader = reader;
     }
 
-    public String readToken() {
+    public String readToken() throws IOException {
         return this.readLineUntilLWS();
     }
 
     public String readLineUntilLWS() throws IOException {
-        // TODO
         this.reader.mark(128);
         int charCount = 0;
-        char c;
+        int c;
         while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
             ++charCount;
         }
@@ -36,34 +42,49 @@ public final class HttpReader {
             throw new IllegalStateException("Can't find LWS in remaining string: '" + this.getRemaining() + "'");
         }
         final char[] chars = new char[charCount];
-        this.reader.read(chars);
+        final int readChars = this.reader.read(chars);
+        assert readChars == charCount;
         return new String(chars);
     }
 
-    public String readLineUntil(final char c) {
-        final int charIndex = this.data.indexOf(c, this.cursor);
-        if (charIndex < 0) {
-            throw new IllegalArgumentException("Can't find character '"
-                    + c + "' in remaining string: '" + this.getRemaining() + "'");
-        } else if (this.data.indexOf(CRLF, this.cursor) < charIndex) {
-            throw new IllegalArgumentException("Line ends before next occurrence of '"
+    public String readLineUntil(final char searchChar) throws IOException {
+        this.reader.mark(128);
+        int charCount = 0;
+        int c;
+        while ((c = this.reader.read()) != -1 && c != searchChar) {
+            if (c == CR || c == LF) {
+                this.reader.reset();
+                throw new IllegalArgumentException("Line ends before next occurrence of '"
+                        + c + "' in remaining string: '" + this.getRemaining() + "'");
+            }
+            ++charCount;
+        }
+        this.reader.reset();
+        if (c == -1) {
+            throw new IllegalStateException("Can't find character '"
                     + c + "' in remaining string: '" + this.getRemaining() + "'");
         }
-        final int prevCursor = this.cursor;
-        this.cursor = charIndex + 1;
-        return this.data.substring(prevCursor, charIndex);
+        final char[] chars = new char[charCount];
+        final int readChars = this.reader.read(chars);
+        assert readChars == charCount;
+        return new String(chars);
     }
 
-    public boolean skipLWS() {
+    public boolean skipLWS() throws IOException {
+        this.reader.mark(1);
+        int c;
         boolean ret = false;
-        while (this.isReadable() && HttpDefinitions.isLWS(this.peek())) {
-            this.skip();
+        while ((c = this.reader.read()) != -1 && HttpDefinitions.isLWS(c)) {
             ret = true;
+            this.reader.mark(1);
+        }
+        if (c != -1) {
+            this.reader.reset();
         }
         return ret;
     }
 
-    public String readMultiLine() {
+    public String readMultiLine() throws IOException {
         final StringBuilder builder = new StringBuilder();
         do {
             // strip trailing whitespace from line
@@ -76,69 +97,115 @@ public final class HttpReader {
         return builder.toString().stripTrailing();
     }
 
-    public String readSingleLine() {
-        int lineIndex = this.data.indexOf(CRLF, this.cursor);
-        if (lineIndex < 0) lineIndex = this.data.length();
-        final int prevCursor = this.cursor;
-        this.cursor = lineIndex;
-        return this.data.substring(prevCursor, lineIndex);
+    public String readSingleLine() throws IOException {
+        this.reader.mark(128);
+        int charCount = 0;
+        boolean endOfLineTrigger = false;
+        int c;
+        while ((c = this.reader.read()) != -1) {
+            if (endOfLineTrigger) {
+                if (c == LF) {
+                    break; // done!
+                }
+                throw new IllegalStateException("Expected LF character after CR character; received '" + ((char) c) + "'");
+            } else if (c == CR) {
+                endOfLineTrigger = true; // http spec requires CRLF line endings
+            } else {
+                ++charCount;
+            }
+        }
+        this.reader.reset();
+
+        final char[] chars = new char[charCount];
+        final int readChars = this.reader.read(chars);
+        assert readChars == charCount;
+        return new String(chars);
     }
 
-    public boolean skipCRLF() {
+    public boolean skipCRLF() throws IOException {
         if (!this.isReadable(CRLF.length())
-                || this.data.charAt(this.cursor) != CR
-                || this.data.charAt(this.cursor + 1) != LF) {
+                && !CRLF.equals(this.peek(CRLF.length()))) {
             return false;
         }
         this.skip(CRLF.length());
         return true;
     }
 
-    public String read(final int length) {
-        final String ret = this.data.substring(this.cursor, this.cursor + length);
-        this.cursor += length;
-        return ret;
+    public String read(final int length) throws IOException {
+        final char[] chars = new char[length];
+        final int actualRead = this.reader.read(chars);
+        if (actualRead != length) {
+            throw new IllegalArgumentException("Can't read " + length + " chars from reader, " + actualRead
+                    + " remaining; end of stream reached");
+        }
+        return new String(chars);
     }
 
-    public char read() {
-        return this.data.charAt(this.cursor++);
+    public char read() throws IOException {
+        final int c = this.reader.read();
+        if (c == -1) {
+            throw new IllegalArgumentException("Can't read reader, end of stream reached");
+        }
+        return (char) c;
     }
 
-    public String peek(final int length) {
-        return this.data.substring(this.cursor, this.cursor + length);
+    public String peek(final int length) throws IOException {
+        this.reader.mark(length);
+        final char[] chars = new char[length];
+        final int actualRead = this.reader.read(chars);
+        this.reader.reset();
+        if (actualRead != length) {
+            throw new IllegalArgumentException("Can't peek " + length + " chars from reader, " + actualRead
+                    + " remaining; end of stream reached");
+        }
+        return new String(chars);
     }
 
-    public char peek() {
-        return this.data.charAt(this.cursor);
+    public char peek() throws IOException {
+        this.reader.mark(1);
+        final int c = this.reader.read();
+        this.reader.reset();
+        if (c == -1) {
+            throw new IllegalArgumentException("Can't peek reader, end of stream reached");
+        }
+        return (char) c;
     }
 
-    public HttpReader skip() {
-        ++this.cursor;
+    public HttpReader skip() throws IOException {
+        return this.skip(1);
+    }
+
+    public HttpReader skip(final int amount) throws IOException {
+        final long actualAmount = this.reader.skip(amount);
+        if (actualAmount != amount) {
+            throw new IOException("Couldn't skip " + amount
+                    + ", skipped only " + actualAmount + " instead");
+        }
         return this;
     }
 
-    public HttpReader skip(final int amount) {
-        this.cursor += amount;
-        return this;
+    public boolean isReadable() throws IOException {
+        return this.isReadable(1);
     }
 
-    public boolean isReadable(final int amount) {
-        return this.cursor <= this.data.length() - amount;
+    public boolean isReadable(final int amount) throws IOException {
+        this.reader.mark(amount);
+        final long actualAmount = this.reader.skip(amount);
+        this.reader.reset();
+        return actualAmount == amount;
     }
 
-    public boolean isReadable() {
-        return this.cursor < this.data.length();
-    }
-
-    public String getRemaining() {
-        return this.data.substring(this.cursor);
-    }
-
-    public int getCursor() {
-        return this.cursor;
-    }
-
-    public void setCursor(final int cursor) {
-        this.cursor = cursor;
+    public String getRemaining() throws IOException {
+        final StringBuilder builder = new StringBuilder();
+        // don't read every single char, create a small buffer instead
+        final char[] buffer = new char[REMAINING_TEXT_CHAR_BUFFER_SIZE];
+        int actualRead;
+        while ((actualRead = this.reader.read(buffer)) == REMAINING_TEXT_CHAR_BUFFER_SIZE) {
+            builder.append(buffer);
+        }
+        if (actualRead > 0) {
+            builder.append(buffer, 0, actualRead);
+        }
+        return builder.toString();
     }
 }

@@ -11,7 +11,7 @@ import java.nio.file.Path;
 @NullMarked
 public class ServerMain {
 
-    public static void main(final String[] args) throws IOException, InterruptedException {
+    public static void main(final String[] args) throws IOException {
         final InetSocketAddress address = new InetSocketAddress("0.0.0.0", 49275);
         try (final HttpServer server = HttpServer.create(address, new ServerParameters(Path.of("demo")))) {
             while (true) {
