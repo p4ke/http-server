@@ -1,6 +1,7 @@
 package dev.booky.http.log;
 
 import dev.booky.http.util.StringUtil;
+import java.util.Arrays;
 import org.jspecify.annotations.NullMarked;
 
 import java.io.PrintStream;
@@ -43,17 +44,36 @@ public class Logger {
     }
 
     public void log(final Level level, final String message, final Object... args) {
-        final PrintStream stream = switch (level.stream) {
-            case OUT -> this.stout;
-            case ERR -> this.sterr;
-        };
+        if (args.length > 0 && args[args.length - 1] instanceof final Throwable throwable) {
+            final Object[] trimmedArgs = Arrays.copyOf(args, args.length - 1);
+            this.log0(level, message, trimmedArgs);
+            this.log0(level, throwable);
+        } else {
+            this.log0(level, message, args);
+        }
+    }
+
+    private void log0(final Level level, final String message, final Object... args) {
         final String formattedMessage = args.length != 0
                 ? message.formatted(args) : message;
 
         final String[] lines = StringUtil.split(formattedMessage, '\n');
+        final PrintStream stream = this.getStream(level);
         for (int i = 0, len = lines.length; i < len; ++i) {
             stream.print(this.formatLine(level, lines[0]));
         }
+    }
+
+    private void log0(final Level level, final Throwable throwable) {
+        final PrintStream stream = this.getStream(level);
+        throwable.printStackTrace(stream);
+    }
+
+    private PrintStream getStream(final Level level) {
+        return switch (level.stream) {
+            case OUT -> this.stout;
+            case ERR -> this.sterr;
+        };
     }
 
     public void log(final Level level, final String message) {
