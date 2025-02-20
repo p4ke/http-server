@@ -22,11 +22,13 @@ public final class StringUtil {
         if (string.length() < 2) {
             return string; // no quoting possible
         }
+        // determine whether the string has quoting at the start and quoting at the end
         final boolean startQuote = isQuote(string.charAt(0));
         final boolean endQuote = isQuote(string.charAt(string.length() - 1));
         if (!startQuote && !endQuote) {
             return string; // no quoting present
         }
+        // remove quotes at start and quotes at the end of the string, if present
         return string.substring(startQuote ? 1 : 0, string.length() - (endQuote ? 1 : 0));
     }
 

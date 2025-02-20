@@ -5,7 +5,11 @@ import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.HttpHeaderValues;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.jspecify.annotations.NullMarked;
+
+import static dev.booky.http.protocol.HttpHeaders.headers;
+import static dev.booky.http.util.MimeType.TYPE_PLAIN_UTF8;
 
 @NullMarked
 public class HttpRequest {
@@ -52,6 +56,16 @@ public class HttpRequest {
         final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 
         return new HttpRequest(method, uri, version, headers, bodyBytes);
+    }
+
+    public HttpResponse buildError(final HttpStatus status) {
+        return this.buildError(status, status.getStatus());
+    }
+
+    public HttpResponse buildError(final HttpStatus status, final String message) {
+        final Map<String, String> headers = Map.of("content-type", TYPE_PLAIN_UTF8.getType());
+        return new HttpResponse(this.version, status, headers(headers),
+                message.getBytes(StandardCharsets.UTF_8));
     }
 
     public HttpMethod getMethod() {

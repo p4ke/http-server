@@ -2,9 +2,13 @@ package dev.booky.http;
 
 import dev.booky.http.log.Logger;
 import dev.booky.http.log.LoggerFactory;
+import dev.booky.http.protocol.HttpHeaders;
 import dev.booky.http.protocol.HttpRequest;
 import dev.booky.http.protocol.HttpResponse;
+import dev.booky.http.protocol.HttpUri.UriImpl;
+import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
+import dev.booky.http.util.MimeType;
 import dev.booky.http.util.StringUtil;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -18,14 +22,16 @@ import java.io.Writer;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.NullMarked;
 
-import static dev.booky.http.protocol.HttpHeaders.headersEmpty;
+import static dev.booky.http.protocol.HttpStatus.STATUS_BAD_REQUEST;
+import static dev.booky.http.protocol.HttpStatus.STATUS_METHOD_NOT_ALLOWED;
+import static dev.booky.http.protocol.HttpStatus.STATUS_NOT_FOUND;
 import static dev.booky.http.protocol.HttpStatus.STATUS_OK;
 import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.net.StandardSocketOptions.TCP_NODELAY;
@@ -90,33 +96,46 @@ public class HttpServer implements AutoCloseable {
         });
     }
 
-    public void handleMessage(final Socket socket, final HttpRequest message) throws IOException {
+    public void handleMessage(final Socket socket, final HttpRequest request) throws IOException {
         try (final OutputStream output = socket.getOutputStream();
              final Writer outputWriter = new OutputStreamWriter(output);
              final BufferedWriter writer = new BufferedWriter(outputWriter)) {
-            final HttpResponse resp = new HttpResponse(
-                    message.getVersion(), STATUS_OK, headersEmpty(),
-                    """
-                            Version: %s
-                            URI: %s
-                            Method: %s
-                            Headers: %s
-                            """.formatted(
-                            message.getVersion().toString(),
-                            message.getUri().toString(),
-                            message.getMethod().toString(),
-                            message.getHeaders().getHeaders().entrySet().stream()
-                                    .map(entry -> "\n  %s = %s".formatted(entry.getKey(), entry.getValue()))
-                                    .collect(Collectors.joining())
-                    ).stripIndent().getBytes(StandardCharsets.UTF_8)
-            );
-            resp.writeTo(output, writer);
-            LOGGER.info("Handled %s %s %s from %s", message.getVersion(), message.getMethod(),
-                    message.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()));
+            // read file from root directory and build response
+            final HttpResponse response = this.buildFileResponse(request);
+            LOGGER.info("Handled %s %s %s from %s with %s", request.getVersion(), request.getMethod(),
+                    request.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()),
+                    response.getStatus().toString());
+            // write response to browser socket
+            response.writeTo(output, writer);
         } catch (final Throwable throwable) {
-            LOGGER.error("Handled %s %s %s from %s with error", message.getVersion(), message.getMethod(),
-                    message.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()), throwable);
+            LOGGER.error("Handled %s %s %s from %s with error", request.getVersion(), request.getMethod(),
+                    request.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()), throwable);
         }
+    }
+
+    public HttpResponse buildFileResponse(final HttpRequest request) throws IOException {
+        if (request.getMethod() != HttpMethod.GET) {
+            return request.buildError(STATUS_METHOD_NOT_ALLOWED);
+        } else if (!(request.getUri() instanceof UriImpl)) {
+            return request.buildError(STATUS_BAD_REQUEST, "Invalid request URI");
+        }
+        // resolve target file starting at http server root
+        Path targetPath = ((UriImpl) request.getUri()).resolvePath(this.params.rootDir());
+        if (Files.isDirectory(targetPath)) {
+            // try to fall back to index file, if it exists
+            targetPath = targetPath.resolve("index.html");
+        }
+        if (!Files.isRegularFile(targetPath)) { // check if file exists
+            return request.buildError(STATUS_NOT_FOUND, "Path " + targetPath + " not found");
+        }
+        // extract content type from target file name
+        final MimeType mimeType = MimeType.guessFromPathName(targetPath);
+        final Map<String, String> headers = Map.of(
+                "content-type", mimeType.toString()
+        );
+        // read file and build response
+        final byte[] body = Files.readAllBytes(targetPath);
+        return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.headers(headers), body);
     }
 
     @Override

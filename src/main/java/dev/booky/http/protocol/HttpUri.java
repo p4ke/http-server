@@ -2,6 +2,7 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import org.jspecify.annotations.NullMarked;
 
 import java.net.URI;
@@ -35,6 +36,18 @@ public sealed interface HttpUri {
     }
 
     record UriImpl(URI uri) implements HttpUri {
+
+        public Path resolvePath(final Path root) {
+            // TODO ensure path is safe
+            final String uriPath = this.uri.getPath();
+            if (uriPath.isEmpty() || "/".equals(uriPath)) {
+                return root;
+            }
+            if (uriPath.charAt(0) == '/') {
+                return root.resolve(uriPath.substring(1));
+            }
+            return root.resolve(uriPath);
+        }
 
         @Override
         public String toString() {

@@ -201,4 +201,9 @@ public class MimeType {
     public Map<String, String> getProperties() {
         return this.properties;
     }
+
+    @Override
+    public String toString() {
+        return this.type + '/' + this.subtype;
+    }
 }

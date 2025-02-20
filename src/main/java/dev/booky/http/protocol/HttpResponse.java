@@ -3,8 +3,6 @@ package dev.booky.http.protocol;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 import static dev.booky.http.protocol.HttpDefinitions.SP;
@@ -37,6 +35,7 @@ public class HttpResponse {
         writer.write(this.status.toString());
         writer.write(CRLF);
         this.headers.writeTo(writer);
+        writer.write(CRLF);
         writer.write(CRLF);
         writer.flush(); // flush!
         output.write(this.body);
