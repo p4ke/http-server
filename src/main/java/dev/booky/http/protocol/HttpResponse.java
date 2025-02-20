@@ -1,24 +1,38 @@
 package dev.booky.http.protocol;
 
+import dev.booky.http.util.CheckedSupplier;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import org.jspecify.annotations.NullMarked;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 import static dev.booky.http.protocol.HttpDefinitions.SP;
 
+@NullMarked
 public class HttpResponse {
 
     private final HttpVersion version;
     private final HttpStatus status;
     private final HttpHeaders headers;
-    private final byte[] body;
+    private final CheckedSupplier<InputStream, IOException> body;
 
     public HttpResponse(
             final HttpVersion version,
             final HttpStatus status,
             final HttpHeaders headers,
             final byte[] body
+    ) {
+        this(version, status, headers, () -> new ByteArrayInputStream(body));
+    }
+
+    public HttpResponse(
+            final HttpVersion version,
+            final HttpStatus status,
+            final HttpHeaders headers,
+            final CheckedSupplier<InputStream, IOException> body
     ) {
         this.version = version;
         this.status = status;
@@ -38,7 +52,11 @@ public class HttpResponse {
         writer.write(CRLF);
         writer.write(CRLF);
         writer.flush(); // flush!
-        output.write(this.body);
+
+        // write entire body to output
+        try (final InputStream input = this.body.get()) {
+            input.transferTo(output);
+        }
     }
 
     public HttpVersion getVersion() {
@@ -53,7 +71,7 @@ public class HttpResponse {
         return this.headers;
     }
 
-    public byte[] getBody() {
+    public CheckedSupplier<InputStream, IOException> getBody() {
         return this.body;
     }
 }

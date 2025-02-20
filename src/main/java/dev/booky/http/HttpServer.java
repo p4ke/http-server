@@ -119,12 +119,7 @@ public class HttpServer implements AutoCloseable {
         } else if (!(request.getUri() instanceof UriImpl)) {
             return request.buildError(STATUS_BAD_REQUEST, "Invalid request URI");
         }
-        // resolve target file starting at http server root
-        Path targetPath = ((UriImpl) request.getUri()).resolvePath(this.params.rootDir());
-        if (Files.isDirectory(targetPath)) {
-            // try to fall back to index file, if it exists
-            targetPath = targetPath.resolve("index.html");
-        }
+        final Path targetPath = this.extractPath((UriImpl) request.getUri());
         if (!Files.isRegularFile(targetPath)) { // check if file exists
             return request.buildError(STATUS_NOT_FOUND, "Path " + targetPath + " not found");
         }
@@ -133,9 +128,19 @@ public class HttpServer implements AutoCloseable {
         final Map<String, String> headers = Map.of(
                 "content-type", mimeType.toString()
         );
-        // read file and build response
-        final byte[] body = Files.readAllBytes(targetPath);
-        return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.headers(headers), body);
+        // build response and stream file contents to response
+        return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.headers(headers),
+                () -> Files.newInputStream(targetPath));
+    }
+
+    private Path extractPath(final UriImpl uri) {
+        // resolve target file starting at http server root
+        final Path targetPath = uri.resolvePath(this.params.rootDir());
+        if (Files.isDirectory(targetPath)) {
+            // try to fall back to index file, if it exists
+            return targetPath.resolve("index.html");
+        }
+        return targetPath;
     }
 
     @Override
