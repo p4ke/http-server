@@ -56,7 +56,7 @@ public class HttpHeaders {
                 break;
             }
             final String name = reader.readLineUntil(':');
-            reader.skipLWS();
+            reader.skip().skipLWS();
             final String value = reader.readMultiLine();
             headers.compute(name, (key, existingValue) -> joinHeaderValues(existingValue, value));
         } while (reader.skipCRLF() && reader.isReadable(CRLF.length()));
