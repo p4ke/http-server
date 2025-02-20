@@ -15,6 +15,7 @@ import static dev.booky.http.protocol.HttpDefinitions.SP;
 public final class HttpReader {
 
     private static final int REMAINING_TEXT_CHAR_BUFFER_SIZE = 8192;
+    private static final int MAX_LINE_LENGTH = 256;
 
     private final Reader reader;
 
@@ -31,7 +32,7 @@ public final class HttpReader {
     }
 
     public String readLineUntilLWS() throws IOException {
-        this.reader.mark(128);
+        this.reader.mark(MAX_LINE_LENGTH);
         int charCount = 0;
         int c;
         while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
@@ -48,7 +49,7 @@ public final class HttpReader {
     }
 
     public String readLineUntil(final char searchChar) throws IOException {
-        this.reader.mark(128);
+        this.reader.mark(MAX_LINE_LENGTH);
         int charCount = 0;
         int c;
         while ((c = this.reader.read()) != -1 && c != searchChar) {
@@ -98,7 +99,7 @@ public final class HttpReader {
     }
 
     public String readSingleLine() throws IOException {
-        this.reader.mark(128);
+        this.reader.mark(MAX_LINE_LENGTH);
         int charCount = 0;
         boolean endOfLineTrigger = false;
         int c;
