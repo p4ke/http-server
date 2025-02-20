@@ -1,5 +1,8 @@
 package dev.booky.http.util;
 
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.ArrayList;
@@ -46,5 +49,18 @@ public final class StringUtil {
 
         parts.add(string.substring(lastIndex + 1));
         return parts.toArray(new String[0]);
+    }
+
+    public static String stringifyAddress(final SocketAddress address) {
+        if (!(address instanceof final InetSocketAddress inetAddress)) {
+            return address.toString();
+        }
+        final String addressStr = inetAddress.getAddress().getHostAddress();
+        final String portStr = Integer.toString(inetAddress.getPort());
+
+        if (inetAddress.getAddress() instanceof Inet6Address) {
+            return '[' + addressStr + "]:" + portStr;
+        }
+        return addressStr + ':' + portStr;
     }
 }

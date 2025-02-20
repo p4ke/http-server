@@ -28,16 +28,17 @@ public class HttpResponse {
         this.body = body;
     }
 
-    public void writeTo(final OutputStream output) throws IOException {
-        try (final Writer writer = new OutputStreamWriter(output);
-             final BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
-            bufferedWriter.write(this.version.toString());
-            bufferedWriter.write(SP);
-            bufferedWriter.write(this.status.toString());
-            bufferedWriter.write(CRLF);
-            this.headers.writeTo(bufferedWriter);
-            bufferedWriter.write(CRLF);
-        }
+    public void writeTo(
+            final OutputStream output,
+            final BufferedWriter writer
+    ) throws IOException {
+        writer.write(this.version.toString());
+        writer.write(SP);
+        writer.write(this.status.toString());
+        writer.write(CRLF);
+        this.headers.writeTo(writer);
+        writer.write(CRLF);
+        writer.flush(); // flush!
         output.write(this.body);
     }
 
