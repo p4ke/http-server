@@ -53,6 +53,16 @@ public final class StringUtil {
         return parts.toArray(new String[0]);
     }
 
+    public static String stringifyBindAddress(final SocketAddress address) {
+        // Da unter Windows "0.0.0.0" nicht als lokale Adresse erreichbar ist, wird
+        // durch diese Logik "0.0.0.0" durch "127.0.0.1" ersetzt
+        if (address instanceof final InetSocketAddress inetAddress
+                && inetAddress.getAddress().isAnyLocalAddress()) {
+            return stringifyAddress(new InetSocketAddress("127.0.0.1", inetAddress.getPort()));
+        }
+        return stringifyAddress(address);
+    }
+
     public static String stringifyAddress(final SocketAddress address) {
         if (!(address instanceof final InetSocketAddress inetAddress)) {
             return address.toString();

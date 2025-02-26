@@ -24,7 +24,9 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.jspecify.annotations.NullMarked;
@@ -51,10 +53,13 @@ public class HttpServer implements AutoCloseable {
     ) {
         this.socket = socket;
         this.params = params;
+
+        // Es wird ein Thread-Pool erstellt, damit mehrere Http-Anfragen
+        // gleichzeitig verarbeitet werden können
         this.executor = Executors.newCachedThreadPool(this::constructThread);
     }
 
-    public static HttpServer create(
+    public static HttpServer createAndBind(
             final SocketAddress address,
             final ServerParameters params
     ) throws IOException {
@@ -62,13 +67,20 @@ public class HttpServer implements AutoCloseable {
         try {
             socket.setOption(TCP_NODELAY, true);
         } catch (final UnsupportedOperationException ignored) {
-            // expected on specific operating systems
+            // Einige Betriebssysteme (z.B. Windows) unterstützen nicht den TCP_NODELAY Socket-Parameter
         }
-        // instantly bind to address regardless of what TCP wants
+
+        // Das TCP-Protokoll würde nach einem schnellen Programmneustart die
+        // IP-Adresse nicht direkt wieder freigeben, da noch potenzielle TCP-Pakete
+        // im Netzwerk sein könnten; mit dieser Option wird trotzdem direkt die IP-Adresse
+        // wieder verwendet; siehe https://stackoverflow.com/a/3233022 für mehr Informationen
         socket.setOption(SO_REUSEADDR, true);
 
+        // Schließlich wird die TCP-Socket erstellt und eine Info-Nachricht
+        // in die Konsole gesendet
         socket.bind(address);
-        LOGGER.info("Http socket bound on http://%s/", StringUtil.stringifyAddress(address));
+        LOGGER.info("Http socket bound on http://%s/",
+                StringUtil.stringifyBindAddress(address));
 
         return new HttpServer(socket, params);
     }
@@ -81,83 +93,123 @@ public class HttpServer implements AutoCloseable {
     }
 
     public void tryAccept() throws IOException {
+        // Es wird gewartet, bis eine Verbindung zu einem Browser verfügbar ist
         final Socket socket = this.socket.accept();
+        // Direkt nach dem Akzeptieren einer Browser-Verbindung wird zu einem neuen Thread
+        // gewechselt, um die Dauer des Blockierens der Verbindungsannahme so weit wie möglich
+        // zu reduzieren
         this.executor.execute(() -> {
-            LOGGER.info("Accepted socket connection from %s",
-                    StringUtil.stringifyAddress(socket.getRemoteSocketAddress()));
+            final String addressString = StringUtil.stringifyAddress(socket.getRemoteSocketAddress());
+            LOGGER.info("Accepted socket connection from %s", addressString);
+
+            // Im Http-1.1-Protokoll bestehen Anfragen aus Metadaten und dem Inhalt
+            // die Metadaten sind reiner Text, der Inhalt kann auch im Binärformat vorliegen
             try (socket; final InputStream input = socket.getInputStream();
                  final Reader inputReader = new InputStreamReader(input);
                  final BufferedReader bufferedReader = new BufferedReader(inputReader)) {
+                // Der HttpReader besteht aus mehreren Hilfs-Methoden, mit welchen
+                // öfters verwendete Bestandteile einer Http-Anfrage ausgelesen werden können
                 final HttpReader reader = new HttpReader(bufferedReader);
-                this.handleMessage(socket, HttpRequest.parseMessage(reader));
-            } catch (final IOException exception) {
-                throw new RuntimeException(exception);
+                // Hier wird die Anfrage eingelesen, um sowohl Metadaten
+                // als auch (falls vorhanden) den Inhalt auszulesen
+                final HttpRequest request = HttpRequest.parseRequest(reader);
+                // Nach dem erfolgreichen Auslesen der Http-Anfrage wird
+                // die Anfrage verarbeitet - solange bleibt die Browser-Verbindung noch geöffnet
+                this.handleMessage(socket, request);
+            } catch (final Throwable throwable) {
+                // Falls es einen Fehler bei dem Lesen der Anfrage gab,
+                // wird eine Fehlernachricht abgesendet
+                LOGGER.error("Error while reading request from %s", addressString, throwable);
             }
         });
     }
 
-    public void handleMessage(final Socket socket, final HttpRequest request) throws IOException {
+    public void handleMessage(final Socket socket, final HttpRequest request) {
+        // Der ausgehende Netzwerk-Stream wird erstellt und gepuffert
         try (final OutputStream output = socket.getOutputStream();
              final Writer outputWriter = new OutputStreamWriter(output);
              final BufferedWriter writer = new BufferedWriter(outputWriter)) {
-            // read file from root directory and build response
-            final HttpResponse response = this.buildFileResponse(request);
+            // Basierend auf der Anfrage wird eine Antwort erstellt
+            final HttpResponse response = this.buildResponse(request);
+            // Nach dem Erstellen der Antwort wird eine Infonachricht in die Konsole gesendet
             LOGGER.info("Handled %s %s %s from %s with %s", request.getVersion(), request.getMethod(),
                     request.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()),
                     response.getStatus().toString());
-            // write response to browser socket
+            // Schließlich wird die Antwort in die Browser-Verbindung geschrieben
             response.writeTo(output, writer);
         } catch (final Throwable throwable) {
+            // Falls es einen Fehler während der Verarbeitung
+            // gab, wird eine Fehlernachricht abgesendet
             LOGGER.error("Handled %s %s %s from %s with error", request.getVersion(), request.getMethod(),
                     request.getUri(), StringUtil.stringifyAddress(socket.getRemoteSocketAddress()), throwable);
         }
     }
 
-    public HttpResponse buildFileResponse(final HttpRequest request) throws IOException {
+    // Erstellt eine Http-Antwort mit dem Inhalt der angefragten Datei
+    public HttpResponse buildResponse(final HttpRequest request) {
+        // Für Dateianfragen sind nur Http-GET-Anfragen erlaubt
         if (request.getMethod() != HttpMethod.GET) {
             return request.buildError(STATUS_METHOD_NOT_ALLOWED);
-        } else if (!(request.getUri() instanceof UriImpl)) {
+        }
+        // Das Http-Protokoll erlaubt auch URIs wie z.B. "*";
+        // sowas ist nicht für eine Dateiabfrage erlaubt
+        if (!(request.getUri() instanceof UriImpl)) {
             return request.buildError(STATUS_BAD_REQUEST, "Invalid request URI");
         }
+        // Aus der Anfrage wird der Zieldateipfad extrahiert, basierend auf den Server-Parametern
         final Path targetPath = this.extractPath((UriImpl) request.getUri());
-        if (!Files.isRegularFile(targetPath)) { // check if file exists
+        // Falls die Datei NICHT existiert, wird ein Fehler zurückgegeben
+        if (!Files.isRegularFile(targetPath)) {
             return request.buildError(STATUS_NOT_FOUND, "Path " + targetPath + " not found");
         }
-        // extract content type from target file name
+
+        // Basierend auf dem Dateipfad wird ein MIME-Typ "geraten";
+        // falls nichts erkannt werden kann, wird es als Binärdatei gesendet
         final MimeType mimeType = MimeType.guessFromPathName(targetPath);
         final Map<String, String> headers = Map.of(
                 "content-type", mimeType.toString()
         );
-        // build response and stream file contents to response
+        // Die Antwort wird gebaut - der Dateiinhalt wird als Stream-Supplier angegeben,
+        // damit die Datei direkt zur Antwort "gestreamt" werden kann, ohne vorher komplett im RAM
+        // liegen zu müssen
         return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.headers(headers),
                 () -> Files.newInputStream(targetPath));
     }
 
     private Path extractPath(final UriImpl uri) {
-        // resolve target file starting at http server root
+        // Relativ vom Server-Verzeichnis wird ein Dateipfad aufgelöst
         final Path targetPath = uri.resolvePath(this.params.rootDir());
-        if (Files.isDirectory(targetPath)) {
-            // try to fall back to index file, if it exists
-            return targetPath.resolve("index.html");
+        // Falls der Dateipfad kein Ordner ist, wird dieser direkt zurückgegeben
+        if (!Files.isDirectory(targetPath)) {
+            return targetPath;
         }
-        return targetPath;
+        // Andernfalls wird geprüft, ob irgendeine der erlaubten Index-Dateien
+        // im gegebenen Ordner existiert
+        final Optional<Path> indexPath = this.params.indexFiles().stream()
+                .map(targetPath::resolve)
+                .filter(Files::isRegularFile)
+                .findFirst();
+        // Falls eine Index-Datei existiert, wird diese zurückgegeben;
+        // andernfalls wird einfach der Ursprungspfad des Ordners zurückgegeben
+        return indexPath.orElse(targetPath);
     }
 
     @Override
     public void close() throws IOException {
+        // Wenn der Http-Server geschlossen wird,
+        // wird auch die TCP-Socket geschlossen
         this.socket.close();
     }
 
-    public ServerSocket getSocket() {
-        return this.socket;
-    }
-
-    public ServerParameters getParams() {
-        return this.params;
-    }
-
     public record ServerParameters(
-            Path rootDir
+            Path rootDir,
+            List<String> indexFiles
     ) {
+
+        private static final List<String> DEFAULT_INDEX_FILES = List.of("index.html");
+
+        public ServerParameters(final Path rootDir) {
+            this(rootDir, DEFAULT_INDEX_FILES);
+        }
     }
 }

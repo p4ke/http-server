@@ -4,6 +4,7 @@ import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.HttpHeaderValues;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jspecify.annotations.NullMarked;
@@ -34,7 +35,7 @@ public class HttpRequest {
         this.body = body;
     }
 
-    public static HttpRequest parseMessage(final HttpReader reader) throws IOException {
+    public static HttpRequest parseRequest(final HttpReader reader) throws IOException {
         // the protocol says to only skip CRLF, but we skip any whitespaces
         // we encounter: https://www.rfc-editor.org/rfc/rfc2616#section-4.1
         reader.skipLWS();
