@@ -12,7 +12,7 @@ import java.time.temporal.ChronoField;
 import java.util.Locale;
 
 @NullMarked
-public class Logger {
+public final class Logger {
 
     private static final DateTimeFormatter TIME_FORMAT = new DateTimeFormatterBuilder()
             .appendLiteral('[')
@@ -105,7 +105,7 @@ public class Logger {
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
     private enum StandardStream {

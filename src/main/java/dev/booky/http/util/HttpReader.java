@@ -19,10 +19,6 @@ public final class HttpReader {
 
     private final Reader reader;
 
-    public HttpReader(final String data) {
-        this(new StringReader(data));
-    }
-
     public HttpReader(final Reader reader) {
         this.reader = reader;
     }

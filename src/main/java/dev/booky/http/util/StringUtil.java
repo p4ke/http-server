@@ -32,15 +32,18 @@ public final class StringUtil {
         return string.substring(startQuote ? 1 : 0, string.length() - (endQuote ? 1 : 0));
     }
 
-    /**
-     * Splits the specified string without regex parsing
-     */
+    // Teilt die Zeichenkette bei dem gegebenen Trenner, ohne den Trenner als Regex zu betrachten,
+    // wie die Standard-Java-Methode "String#split(String)" es würde
     public static String[] split(final String string, final char separator) {
         int index = string.indexOf(separator);
-        if (index < 0) { // fast path
+        if (index < 0) {
+            // Falls das Trennzeichen nie in der Zeichenkette auftaucht, wird
+            // direkt die Ursprungszeichenkette zurückgegeben
             return new String[]{string};
         }
 
+        // Nun wird in der Zeichenkette immer weiter das Trennzeichen gesucht
+        // und alle Einzelteile werden abgespeichert
         final List<String> parts = new ArrayList<>();
         int lastIndex = -1;
         do {
@@ -49,6 +52,7 @@ public final class StringUtil {
             index = string.indexOf(separator, index + 1);
         } while (index >= 0);
 
+        // Schließlich werden alle Einzelteile als Array ausgegeben
         parts.add(string.substring(lastIndex + 1));
         return parts.toArray(new String[0]);
     }
