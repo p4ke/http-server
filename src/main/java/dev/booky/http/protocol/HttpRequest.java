@@ -2,9 +2,7 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
-import dev.booky.http.util.HttpHeaderValues;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jspecify.annotations.NullMarked;
@@ -50,9 +48,7 @@ public class HttpRequest {
         reader.skipLWS(); // skip any LWS instead of only CRLF
 
         final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
-        final HttpHeaderValues headerValues = HttpHeaderValues.fromHeaders(headers);
 
-        // TODO respect header values
         final String bodyString = reader.getRemaining();
         final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 
