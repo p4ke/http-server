@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jspecify.annotations.NullMarked;
 
 import static dev.booky.http.protocol.HttpStatus.STATUS_BAD_REQUEST;
@@ -46,6 +47,8 @@ public class HttpServer implements AutoCloseable {
     private final ServerSocket socket;
     private final ServerParameters params;
     private final ExecutorService executor;
+
+    private final AtomicInteger threadCount = new AtomicInteger();
 
     private HttpServer(
             final ServerSocket socket,
@@ -86,8 +89,10 @@ public class HttpServer implements AutoCloseable {
     }
 
     private Thread constructThread(final Runnable runnable) {
+        // Es wird ein neuer Anfragen-Thread erstellt und benannt
         final SocketAddress address = this.socket.getLocalSocketAddress();
-        final Thread thread = new Thread(runnable, "Http Socket " + address + " Thread");
+        final Thread thread = new Thread(runnable, "Http Socket " + address
+                + " Thread #" + this.threadCount.getAndIncrement());
         thread.setDaemon(true);
         return thread;
     }
@@ -201,6 +206,7 @@ public class HttpServer implements AutoCloseable {
         this.socket.close();
     }
 
+    // Konfigurationsparameter für den Http-Server
     public record ServerParameters(
             Path rootDir,
             List<String> indexFiles
