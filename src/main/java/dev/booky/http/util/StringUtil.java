@@ -14,24 +14,6 @@ public final class StringUtil {
     private StringUtil() {
     }
 
-    private static boolean isQuote(final char c) {
-        return c == '\'' || c == '"';
-    }
-
-    public static String removeQuoting(final String string) {
-        if (string.length() < 2) {
-            return string; // no quoting possible
-        }
-        // determine whether the string has quoting at the start and quoting at the end
-        final boolean startQuote = isQuote(string.charAt(0));
-        final boolean endQuote = isQuote(string.charAt(string.length() - 1));
-        if (!startQuote && !endQuote) {
-            return string; // no quoting present
-        }
-        // remove quotes at start and quotes at the end of the string, if present
-        return string.substring(startQuote ? 1 : 0, string.length() - (endQuote ? 1 : 0));
-    }
-
     // Teilt die Zeichenkette bei dem gegebenen Trenner, ohne den Trenner als Regex zu betrachten,
     // wie die Standard-Java-Methode "String#split(String)" es würde
     public static String[] split(final String string, final char separator) {
@@ -67,13 +49,19 @@ public final class StringUtil {
         return stringifyAddress(address);
     }
 
+    // Hier wird eine Adresse zu einem String konvertiert
     public static String stringifyAddress(final SocketAddress address) {
         if (!(address instanceof final InetSocketAddress inetAddress)) {
+            // Falls es keine IP-Adresse ist, wird
+            // hier keine spezielle Logik angewandt
             return address.toString();
         }
+        // Die Adresse und der Port wird zu einem String konvertiert
         final String addressStr = inetAddress.getAddress().getHostAddress();
         final String portStr = Integer.toString(inetAddress.getPort());
 
+        // Bei IPv6-Socket-Adressen muss die Adresse in eckigen Klammern gesetzt
+        // werden, damit Anwendungen den Port und die Adresse unterscheiden können
         if (inetAddress.getAddress() instanceof Inet6Address) {
             return '[' + addressStr + "]:" + portStr;
         }
