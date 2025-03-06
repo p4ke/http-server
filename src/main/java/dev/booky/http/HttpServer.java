@@ -112,12 +112,21 @@ public class HttpServer implements AutoCloseable {
             try (socket; final InputStream input = socket.getInputStream();
                  final Reader inputReader = new InputStreamReader(input);
                  final BufferedReader bufferedReader = new BufferedReader(inputReader)) {
+
                 // Der HttpReader besteht aus mehreren Hilfs-Methoden, mit welchen
                 // öfters verwendete Bestandteile einer Http-Anfrage ausgelesen werden können
                 final HttpReader reader = new HttpReader(bufferedReader);
+
+                // Falls eine Anfrage komplett leer ist, wird
+                // die Bearbeitung komplett übersprungen
+                if (!reader.isReadable()) {
+                    return;
+                }
+
                 // Hier wird die Anfrage eingelesen, um sowohl Metadaten
                 // als auch (falls vorhanden) den Inhalt auszulesen
                 final HttpRequest request = HttpRequest.parseRequest(reader);
+
                 // Nach dem erfolgreichen Auslesen der Http-Anfrage wird
                 // die Anfrage verarbeitet - solange bleibt die Browser-Verbindung noch geöffnet
                 this.handleMessage(socket, request);
