@@ -68,6 +68,7 @@ public class HttpHeaders {
             writer.write(entry.getKey());
             writer.write(": ");
             writer.write(entry.getValue());
+            writer.write(CRLF);
         }
     }
 

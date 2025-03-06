@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 import static dev.booky.http.protocol.HttpDefinitions.SP;
@@ -17,22 +18,23 @@ public class HttpResponse {
     private final HttpVersion version;
     private final HttpStatus status;
     private final HttpHeaders headers;
-    private final CheckedSupplier<InputStream, IOException> body;
+    private final @Nullable CheckedSupplier<InputStream, IOException> body;
 
     public HttpResponse(
             final HttpVersion version,
             final HttpStatus status,
             final HttpHeaders headers,
-            final byte[] body
+            final byte @Nullable [] body
     ) {
-        this(version, status, headers, () -> new ByteArrayInputStream(body));
+        this(version, status, headers, body != null
+                ? () -> new ByteArrayInputStream(body) : null);
     }
 
     public HttpResponse(
             final HttpVersion version,
             final HttpStatus status,
             final HttpHeaders headers,
-            final CheckedSupplier<InputStream, IOException> body
+            final @Nullable CheckedSupplier<InputStream, IOException> body
     ) {
         this.version = version;
         this.status = status;
@@ -50,12 +52,13 @@ public class HttpResponse {
         writer.write(CRLF);
         this.headers.writeTo(writer);
         writer.write(CRLF);
-        writer.write(CRLF);
         writer.flush(); // flush!
 
-        // write entire body to output
-        try (final InputStream input = this.body.get()) {
-            input.transferTo(output);
+        if (this.body != null) {
+            // write entire body to output
+            try (final InputStream input = this.body.get()) {
+                input.transferTo(output);
+            }
         }
     }
 
@@ -71,7 +74,7 @@ public class HttpResponse {
         return this.headers;
     }
 
-    public CheckedSupplier<InputStream, IOException> getBody() {
+    public @Nullable CheckedSupplier<InputStream, IOException> getBody() {
         return this.body;
     }
 }

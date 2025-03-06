@@ -1,8 +1,6 @@
 package dev.booky.http.util;
 
-import dev.booky.http.protocol.HttpHeaders.ParameterizedHeader;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -93,21 +91,6 @@ public class MimeType {
         this.type = type;
         this.subtype = subtype;
         this.properties = properties;
-    }
-
-    public static @Nullable MimeType fromHeader(final @Nullable ParameterizedHeader header) {
-        if (header == null) {
-            return null;
-        }
-        final String headerVal = header.value();
-        final int splitIdx = headerVal.indexOf('/');
-        if (splitIdx == -1) {
-            throw new IllegalArgumentException("Invalid mime type: " + headerVal);
-        }
-        final String type = headerVal.substring(0, splitIdx).stripTrailing();
-        final String subtype = headerVal.substring(splitIdx + 1).stripLeading();
-        final Map<String, String> properties = header.parameters();
-        return new MimeType(type, subtype, properties);
     }
 
     public static MimeType guessFromPathName(final Path path) {

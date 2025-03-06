@@ -152,8 +152,9 @@ public class HttpServer implements AutoCloseable {
 
     // Erstellt eine Http-Antwort mit dem Inhalt der angefragten Datei
     public HttpResponse buildResponse(final HttpRequest request) {
-        // Für Dateianfragen sind nur Http-GET-Anfragen erlaubt
-        if (request.getMethod() != HttpMethod.GET) {
+        // Für Dateianfragen sind nur Http-GET-Anfragen und Http-HEAD-Anfragen erlaubt
+        final HttpMethod method = request.getMethod();
+        if (method != HttpMethod.GET && method != HttpMethod.HEAD) {
             return request.buildError(STATUS_METHOD_NOT_ALLOWED);
         }
         // Das Http-Protokoll erlaubt auch URIs wie z.B. "*";
@@ -168,17 +169,27 @@ public class HttpServer implements AutoCloseable {
             return request.buildError(STATUS_NOT_FOUND, "Path " + targetPath + " not found");
         }
 
+        // Die Dateigröße wird ausgelesen, um sie bereits vorher über die
+        final long fileSize;
+        try {
+            fileSize = Files.size(targetPath);
+        } catch (final IOException exception) {
+            throw new RuntimeException("Error while reading file size from " + targetPath);
+        }
+
         // Basierend auf dem Dateipfad wird ein MIME-Typ "geraten";
         // falls nichts erkannt werden kann, wird es als Binärdatei gesendet
         final MimeType mimeType = MimeType.guessFromPathName(targetPath);
         final Map<String, String> headers = Map.of(
-                "content-type", mimeType.toString()
+                "content-type", mimeType.toString(),
+                "content-length", Long.toString(fileSize)
         );
+
         // Die Antwort wird gebaut - der Dateiinhalt wird als Stream-Supplier angegeben,
         // damit die Datei direkt zur Antwort "gestreamt" werden kann, ohne vorher komplett im RAM
         // liegen zu müssen
         return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.headers(headers),
-                () -> Files.newInputStream(targetPath));
+                method == HttpMethod.GET ? () -> Files.newInputStream(targetPath) : null);
     }
 
     private Path extractPath(final UriImpl uri) {
