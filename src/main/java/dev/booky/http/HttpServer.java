@@ -24,6 +24,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,6 +87,12 @@ public class HttpServer implements AutoCloseable {
                 StringUtil.stringifyBindAddress(address));
 
         return new HttpServer(socket, params);
+    }
+
+    private void addStaticHeaders(final Map<String, String> headers) {
+        // TODO add sources, fix date formatting
+        headers.put("server", this.getClass().getSimpleName());
+        headers.put("date", new Date().toString());
     }
 
     private Thread constructThread(final Runnable runnable) {
