@@ -2,10 +2,12 @@ package dev.booky.http.util;
 
 import java.io.IOException;
 import java.util.Objects;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public final class HttpMethod {
 
-    // https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1
+    // Die Standard-Http-Methoden, siehe https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1
     public static final HttpMethod OPTIONS = new HttpMethod("OPTIONS");
     public static final HttpMethod GET = new HttpMethod("GET");
     public static final HttpMethod HEAD = new HttpMethod("HEAD");

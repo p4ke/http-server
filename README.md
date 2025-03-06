@@ -1,15 +1,16 @@
-## HTTP Server
+# HTTP Server
 
 - Einfache Implementation eines HTTP/1.1 Servers in Java
     - Siehe https://www.rfc-editor.org/rfc/rfc2616
 - Ohne Nutzung von Bibliotheken in der Runtime
 
-### Testen
+## Testen
 
-Unter Windows in Powershell: `./gradlew.bat run`
+Unter Windows in Powershell: `./gradlew.bat run`.
+
 Dann sollte eine Beispielwebsite im Browser unter http://127.0.0.1:8080 erreichbar sein.
 
-### Hinweise
+## Hinweise
 
 Dies ist keine vollständige Implementation des HTTP/1.1 Protokolls, da einige Funktionen teilweise unvollständig sind
 oder komplett fehlen. Allerdings wären diese für dieses Schulprojekt nicht wirklich wichtig. Dazu zählen zum Beispiel:
@@ -23,3 +24,11 @@ oder komplett fehlen. Allerdings wären diese für dieses Schulprojekt nicht wir
 - Unterstützung von "Transfer Codings", siehe https://www.rfc-editor.org/rfc/rfc2616#section-3.6
 - Persistente Verbindungen zu Browsern, siehe https://www.rfc-editor.org/rfc/rfc2616#section-8.1
 - Die Http "OPTIONS"-Methode, siehe https://www.rfc-editor.org/rfc/rfc2616#section-9.2
+
+## Quellen
+
+- [RFC 2616: Hypertext Transfer Protocol -- HTTP/1.1](https://www.rfc-editor.org/rfc/rfc2616)
+- [Common MIME types - HTTP | MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types)
+- [HTTP response status codes - HTTP | MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+
+Falls relevant, werden im Programmiercode teilweise auch direkt spezielle Quellen erwähnt.

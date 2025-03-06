@@ -56,7 +56,7 @@ public class HttpRequest {
     }
 
     public HttpResponse buildError(final HttpStatus status) {
-        return this.buildError(status, status.getStatus());
+        return this.buildError(status, status.getName());
     }
 
     public HttpResponse buildError(final HttpStatus status, final String message) {
