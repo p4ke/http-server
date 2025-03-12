@@ -1,7 +1,6 @@
 # HTTP Server
 
 - Einfache Implementation eines HTTP/1.1 Servers in Java
-    - Siehe https://www.rfc-editor.org/rfc/rfc2616
 - Ohne Nutzung von Bibliotheken in der Runtime
 
 ## Testen
@@ -17,7 +16,7 @@ oder komplett fehlen. Allerdings wären diese für dieses Schulprojekt nicht wir
 
 - Unterstützung von Anfragen mit Binär-Inhalt
 - Vernünftige Unterstützung von Charsets
-- Standard-Header bei Http-Antworten (z.B. "Content-Disposition")
+- Standard-Header bei Http-Antworten
 - Das Meiste im Zusammenhang mit Websockets
 - Respektierung des "Accept"-Headers, siehe https://www.rfc-editor.org/rfc/rfc2616#section-14.1
 - Unterstützung von "Content Codings" (u.a. Kompression), siehe https://www.rfc-editor.org/rfc/rfc2616#section-14.41

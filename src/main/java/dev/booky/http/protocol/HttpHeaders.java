@@ -16,64 +16,81 @@ import java.util.stream.Stream;
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 
 @NullMarked
-public class HttpHeaders {
-
-    private static final HttpHeaders EMPTY = new HttpHeaders(Map.of());
+public final class HttpHeaders {
 
     private final Map<String, String> headers;
 
-    private HttpHeaders(final Map<String, String> headers) {
+    public HttpHeaders(final Map<String, String> headers) {
         this.headers = headers.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                // header names are case-insensitive https://www.rfc-editor.org/rfc/rfc2616#section-4.2
-                .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()))
+                .map(entry -> Map.entry(normalizeHeaderName(entry.getKey()), entry.getValue()))
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    // "Normt" den Namen eines Http-Headers
+    private static String normalizeHeaderName(final String name) {
+        // Für Header-Namen ist Groß-/Kleinschreibung egal, siehe https://www.rfc-editor.org/rfc/rfc2616#section-4.2
+        return name.toLowerCase(Locale.ROOT);
+    }
+
+    // Fügt zwei Header-Werte zusammen, nach den Regeln von https://www.rfc-editor.org/rfc/rfc2616#section-4.2
     @Contract("null, null -> null; !null, _ -> !null; _, !null -> !null")
     private static @Nullable String joinHeaderValues(@Nullable final String value1, @Nullable final String value2) {
-        // this is fine behavior and should not change any semantics, according to
-        // the bottom of https://www.rfc-editor.org/rfc/rfc2616#section-4.2
         if (value1 == null) return value2;
         if (value2 == null) return value1;
         return value1 + ',' + value2;
     }
 
-    public static HttpHeaders headers(final Map<String, String> headers) {
-        return new HttpHeaders(headers);
-    }
-
-    public static HttpHeaders headersEmpty() {
-        return EMPTY;
-    }
-
+    // Nutzt den HTTP-Reader, um alle HTTP-Header auszulesen, bis entweder der
+    // Inhalt vorbei ist oder der Anfragen-Inhalt anfängt
     public static HttpHeaders parseHeaders(final HttpReader reader) throws IOException {
         final Map<String, String> headers = new HashMap<>();
         do {
             if (CRLF.equals(reader.peek(CRLF.length()))) {
-                // if there still is CRLF after the initial CRLF,
-                // end parsing of headers as the message body will follow
+                // Falls nach einem Zeilenbruch (wird in der Bedingung der Fußgesteuerten
+                // while-Schleife überprüft) noch ein weiterer Zeilenbruch vorliegt,
+                // ist das Ende der HTTP-Header erreicht
                 break;
             }
+            // Ein Header ist normalerweise nach "<Name> ': ' <Wert>" formatiert -
+            // deshalb wird jetzt bis zum ersten ":" der Header-Name eingelesen
             final String name = reader.readLineUntil(':');
+            // Es wird das ":" übersprungen, sowie jede weiteren Weißzeichen
             reader.skip().skipLWS();
+            // Der Wert des Headers kann auch mehrzeilig sein - es wird nun bis zum nächsten
+            // Zeilenbruch ohne Fortsetzung des Headers der Wert des Headers eingelesen
             final String value = reader.readMultiLine();
-            headers.compute(name, (key, existingValue) -> joinHeaderValues(existingValue, value));
+            // Schließlich wird der Header-Wert in einer Map abgespeichert - falls der Header-Wert bereits
+            // existiert, werden die Werte nach Http-Standard zusammengefügt
+            headers.compute(normalizeHeaderName(name),
+                    (key, existingValue) -> joinHeaderValues(existingValue, value));
+            // Nachdem der eine Header gelesen wurde, wird ein Zeilensprung erwartet - falls
+            // dieser vorliegt und noch mindestens ein weiterer Zeilensprung gelesen werden könnte,
+            // wird weiter gelesen
         } while (reader.skipCRLF() && reader.isReadable(CRLF.length()));
+        // Aus der eingelesenen Map wird nun ein Objekt gebaut
         return new HttpHeaders(headers);
     }
 
     public void writeTo(final BufferedWriter writer) throws IOException {
+        // Es wird über alle Header-Einträge iteriert
         for (final Map.Entry<String, String> entry : this.headers.entrySet()) {
+            // Ein Header ist normalerweise nach "<Name> ': ' <Wert>" formatiert -
+            // deshalb wird zuerst der Header-Name geschriebene ...
             writer.write(entry.getKey());
+            // ... dann das Trennzeichen ...
             writer.write(": ");
+            // ... und schließlich der Wert des Headers
             writer.write(entry.getValue());
+
+            // Am Ende wird das Ende des Header-Einträgs mithilfe
+            // eines Zeilensprungs markiert
             writer.write(CRLF);
         }
     }
 
     public @Nullable String getHeader(final String name) {
-        return this.headers.get(name.toLowerCase(Locale.ROOT));
+        return this.headers.get(normalizeHeaderName(name));
     }
 
     public Map<String, String> getHeaders() {

@@ -7,7 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jspecify.annotations.NullMarked;
 
-import static dev.booky.http.protocol.HttpHeaders.headers;
+import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_LENGTH;
+import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_TYPE;
 import static dev.booky.http.util.MimeType.TYPE_PLAIN_UTF8;
 
 @NullMarked
@@ -34,35 +35,45 @@ public class HttpRequest {
     }
 
     public static HttpRequest parseRequest(final HttpReader reader) throws IOException {
-        // the protocol says to only skip CRLF, but we skip any whitespaces
-        // we encounter: https://www.rfc-editor.org/rfc/rfc2616#section-4.1
+        // Laut dem Http-Protokoll sollte beim Start einer Anfrage eigentlich nur
+        // ein Zeilensprung übersprungen werden, allerdings überspringen wir hier
+        // zur Sicherheit alle Weißzeichen, siehe https://www.rfc-editor.org/rfc/rfc2616#section-4.1
         reader.skipLWS();
 
+        // Die erste Zeile einer Http-Anfrage sieht wie folgt aus:
         // Request-Line = Method SP Request-URI SP HTTP-Version CRLF
         // (https://www.rfc-editor.org/rfc/rfc2616#section-5.1)
-        final HttpMethod method = HttpMethod.parseMethod(reader);
-        reader.skipLWS(); // skip any LWS instead of only SP
-        final HttpUri uri = HttpUri.parseUri(reader);
-        reader.skipLWS(); // skip any LWS instead of only SP
-        final HttpVersion version = HttpVersion.parseVersion(reader);
-        reader.skipLWS(); // skip any LWS instead of only CRLF
 
+        // Zuerst wird die Http-Methode eingelesen:
+        final HttpMethod method = HttpMethod.parseMethod(reader);
+        reader.skipLWS(); // statt nur einem Leerzeichen überspringen wir hier zur Sicherheit alle Weißzeichen
+        final HttpUri uri = HttpUri.parseUri(reader);
+        reader.skipLWS(); // statt nur einem Leerzeichen überspringen wir hier zur Sicherheit alle Weißzeichen
+        final HttpVersion version = HttpVersion.parseVersion(reader);
+        reader.skipLWS(); // statt nur einem Zeilensprung überspringen wir hier zur Sicherheit alle Weißzeichen
+
+        // Nach der Anfragen-Zeile folgen die Http-Header
         final HttpHeaders headers = HttpHeaders.parseHeaders(reader);
 
+        // Schließlich wird der restliche Anfragen-Inhalt als Zeichenkette
+        // eingelesen und zu einem UTF-8-kodiertem Byte-Array umgewandelt;
+        // zum aktuellen Zeitpunkt werden durch den Http-Reader dadurch
+        // keine Binäranfragen unterstützt
         final String bodyString = reader.getRemaining();
         final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 
         return new HttpRequest(method, uri, version, headers, bodyBytes);
     }
 
-    public HttpResponse buildError(final HttpStatus status) {
-        return this.buildError(status, status.getName());
-    }
-
+    // Eine Hilfsmethode, um basierend auf dieser Http-Anfrage eine
+    // einfache Http-Fehlermeldung-Antwort zu erstellen
     public HttpResponse buildError(final HttpStatus status, final String message) {
-        final Map<String, String> headers = Map.of("content-type", TYPE_PLAIN_UTF8.getType());
-        return new HttpResponse(this.version, status, headers(headers),
-                message.getBytes(StandardCharsets.UTF_8));
+        final byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        final Map<String, String> headers = Map.of(
+                HEADER_CONTENT_TYPE, TYPE_PLAIN_UTF8.getType(),
+                HEADER_CONTENT_LENGTH, Integer.toString(messageBytes.length)
+        );
+        return new HttpResponse(this.version, status, new HttpHeaders(headers), messageBytes);
     }
 
     public HttpMethod getMethod() {

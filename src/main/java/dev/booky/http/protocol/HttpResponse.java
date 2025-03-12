@@ -13,13 +13,19 @@ import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 import static dev.booky.http.protocol.HttpDefinitions.SP;
 
 @NullMarked
-public class HttpResponse {
+public final class HttpResponse {
 
     private final HttpVersion version;
     private final HttpStatus status;
     private final HttpHeaders headers;
+
+    // Um nicht den kompletten Dateiinhalt auf einmal in dem RAM laden zu müssen,
+    // wird hier ein java InputStream-Supplier abgespeichert, welcher dann
+    // direkt an den Browser übertragen wird, ohne vollständig im RAM liegen zu müssen
     private final @Nullable CheckedSupplier<InputStream, IOException> body;
 
+    // Ein Hilfs-Construktor, mit welchem ein einfaches Byte-Array
+    // als Antwortsinhalt genommen wird
     public HttpResponse(
             final HttpVersion version,
             final HttpStatus status,
@@ -46,16 +52,32 @@ public class HttpResponse {
             final OutputStream output,
             final BufferedWriter writer
     ) throws IOException {
+        // Die erste Zeile einer Http-Antwort sieht wie folgt aus:
+        // Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+        // (https://www.rfc-editor.org/rfc/rfc2616#section-6.1)
         writer.write(this.version.toString());
         writer.write(SP);
         writer.write(this.status.toString());
         writer.write(CRLF);
+
+        // Auf die Statuszeile der Http-Antwort folgen die Http-Header
         this.headers.writeTo(writer);
-        writer.write(CRLF);
-        writer.flush(); // flush!
 
         if (this.body != null) {
-            // write entire body to output
+            // Durch einen doppelten Zeilensprung wird das Ende der Http-Header
+            // markiert und der Start des Http-Antwort-Inhalts eingeleitet
+            writer.write(CRLF);
+        }
+
+        // Der "Writer" wird "gespült"; da wir hier einen "BufferedWriter" haben,
+        // müssen zuerst alle gepufferten Textinhalte in den eigentlichen OutputStream
+        // "gespült" werden, damit wir den Antwort-Inhalt direkt in den OutputStream
+        // übertragen können, ohne das die Antwort falsch angeordnet ist
+        writer.flush();
+
+        if (this.body != null) {
+            // Schließlich wird sich ein neuer InputStream aus dem Supplier
+            // geholt und mit Java-Methoden in den OutputStream "transferiert"
             try (final InputStream input = this.body.get()) {
                 input.transferTo(output);
             }
