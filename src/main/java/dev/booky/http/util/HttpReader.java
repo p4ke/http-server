@@ -40,7 +40,7 @@ public final class HttpReader {
         while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
             ++charCount;
         }
-        // Ruft gemeinsame Logik mit der Methode "HttpReader#readLineUntil(char)" auf
+        // Ruft gemeinsame Logik auf, um die Zeichenkette je nach Zeichenanzahl zu konstruieren
         return this.readLineUntil0(c, charCount);
     }
 
@@ -64,10 +64,51 @@ public final class HttpReader {
             }
             ++charCount;
         }
-        // Ruft gemeinsame Logik mit der Methode "HttpReader#readLineUntilLWS()" auf
+        // Ruft gemeinsame Logik auf, um die Zeichenkette je nach Zeichenanzahl zu konstruieren
         return this.readLineUntil0(c, charCount);
     }
 
+    // Hier wird die aktuelle Zeile bis zum Ende des Zeilenumbruchs gelesen;
+    // ein wichtiges Merkmal ist, dass der Zeilenumbruch auch noch "konsumiert" wird,
+    // aber nicht in der zurückgegebenen Zeichenkette auftaucht
+    public String readSingleLine() throws IOException {
+        // Zuerst wird die aktuelle Position markiert
+        this.reader.mark(MAX_LINE_LENGTH);
+        // Auch hier wird wieder zuerst gezählt, wie viele Zeichen gelesen werden
+        // müssen, dann zurückgesetzt, und dann wieder gelesen
+        int charCount = 0;
+        // Da im Http-Protokoll alle Zeilenumbrüche im Format "CR" "LF" sind,
+        // wird hier abgespeichert, ob das erste dieser Zeichen (Wagenrücklauf-Zeichen) gelesen wurde
+        boolean endOfLineTrigger = false;
+        int c;
+        while ((c = this.reader.read()) != -1) {
+            // Falls ein Wagenrücklaufs-Zeichen gelesen wurde, wird nun ein Zeilenvorschubs-Zeichen erwartet
+            if (endOfLineTrigger) {
+                if (c == LF) {
+                    // Der Zeilenumbruch ist vollständig und die Zeile ist damit fertig gelesen;
+                    // die Schleife wird somit beendet
+                    break;
+                }
+                // Es wird ein Fehler geworfen
+                throw new IllegalStateException("Expected LF character after CR character; received '" + ((char) c) + "'");
+            } else if (c == CR) {
+                // Da ein Wagenrücklaufs-Zeichen gelesen wurde, wird nun ein Zeilenvorschubs-Zeichen erwartet
+                endOfLineTrigger = true;
+            } else if (c == LF) {
+                // Bevor ein Zeilenvorschubs-Zeichen gelesen wird, sollte laut Http-Protokoll
+                // immer ein Wagenrücklaufs-Zeichen davor stehen
+                throw new IllegalStateException("Encountered LF character without CR character");
+            } else {
+                // Weder Wagenrücklauf noch Zeilenvorschub, ein ganz normales Zeichen
+                ++charCount;
+            }
+        }
+        // Ruft gemeinsame Logik auf, um die Zeichenkette je nach Zeichenanzahl zu konstruieren
+        return this.readLineUntil0(c, charCount);
+    }
+
+    // Gemeinsame Logik von "HttpReader#readLineUntilLWS()", "HttpReader#readLineUntil(char)" und "HttpReader#readSingleLine()",
+    // wo basierend auf gerade ausgelesenen Zuständen eine bestimmte Zeichenkette gelesen wird
     private String readLineUntil0(final int lastChar, final int charCount) throws IOException {
         // Entweder wurde das Zeichen gefunden oder der Reader hat das Ende erreicht -
         // auf jeden Fall wird erstmal der Reader wieder zurück an die markierte Position gesetzt
@@ -90,65 +131,77 @@ public final class HttpReader {
         return new String(chars);
     }
 
+    // Hier werden alle folgenden Weißzeichen übersprungen, falls vorhanden
+    // und gibt zurück, ob mindestens ein Weißzeichen übersprungen wurde
     public boolean skipLWS() throws IOException {
+        // Zuerst wird die aktuelle Position markiert - da erstmal nur ein Zeichen gelesen
+        // wird, ist das "read-ahead-limit" auf eins gesetzt
         this.reader.mark(1);
-        int c;
+        // Da diese Methode einen Wert zurückgibt, wird
+        // hier abgespeichert, ob mindestens ein Weißzeichen gefunden wurde
         boolean ret = false;
-        while ((c = this.reader.read()) != -1 && HttpDefinitions.isLWS(c)) {
+        // Erstmal wird so lange gelesen, bis das Ende des Readers erreicht wurde
+        int c;
+        while ((c = this.reader.read()) != -1) {
+            // Falls das soeben gelesene Zeichen ein Weißzeichen ist,
+            // wird diese Schleife abgebrochen
+            if (!HttpDefinitions.isLWS(c)) {
+                break;
+            }
+            // Es wurde ein Weißzeichen gefunden! Dieser Status wird abgespeichert
             ret = true;
+            // Der Reader wird wieder markiert, um das finale Zurücksetzen zu gewährleisten
             this.reader.mark(1);
         }
         if (c != -1) {
+            // Falls das Ende des Readers noch nicht erreicht wurde,
+            // wird ein Zeichen zurückgesetzt, da ansonsten ein nicht-Weißzeichen
+            // übersprungen wurde
             this.reader.reset();
         }
         return ret;
     }
 
+    // Hier wird ein mehrzeiliger Http-Wert gelesen - dies
+    // wird aktuell nur bei Http-Header-Werten benötigt
     public String readMultiLine() throws IOException {
         final StringBuilder builder = new StringBuilder();
+        // Es wird mit einer fußgesteuerten While-Schleife immer eine Zeile
+        // nach der anderen gelesen, solange die nächste Zeile mit Weißzeichen beginnt
         do {
-            // strip trailing whitespace from line
+            // Hier wird eine Zeile gelesen und nachfolgende Weißzeichen
+            // mit Java-Standard-Methoden entfernt
             final String line = this.readSingleLine().stripTrailing();
+            // Die Zeile wird abgespeichert und erstmal mit einem einzelnen Leerzeichen
             builder.append(line).append(SP);
-        } while (this.isReadable(CRLF.length())
-                // don't continue if CRLF follows
-                && !CRLF.equals(this.peek(CRLF.length()))
-                && this.skipLWS());
+            // Da "HttpReader#readSingleLine()" auch das Zeilenumbruchs-Zeichen
+            // konsumiert, wird hier in der Bedingung überprüft, dass keine zwei Zeilenumbrüche
+            // hintereinander auftreten
+            // Zudem wird überprüft, dass die darauffolgende Zeile mit einem Weißzeichen anfängt - falls das
+            // nicht der Fall ist, ist das auch das Ende des Multi-Zeilen-Textes
+        } while (this.isReadable(CRLF.length()) // Überprüfung, dass noch genug Platz für einen Zeilenumbruch ist
+                && !CRLF.equals(this.peek(CRLF.length())) // Falls ein Zeilenumbruch folgt, wird abgebrochen
+                && this.skipLWS()); // Falls KEIN Weißzeichen am Start der nächsten Zeile ist, wird auch abgebrochen
+        // Schließlich wird der Zeichenketten-Bauer in eine Zeichenkette umgewandelt
+        // und das Leerzeichen, was vorher immer am Ende angefügt wurde, wird
+        // ganz am Ende des Multi-Zeilen-Textes entfernt
         return builder.toString().stripTrailing();
     }
 
-    public String readSingleLine() throws IOException {
-        this.reader.mark(MAX_LINE_LENGTH);
-        int charCount = 0;
-        boolean endOfLineTrigger = false;
-        int c;
-        while ((c = this.reader.read()) != -1) {
-            if (endOfLineTrigger) {
-                if (c == LF) {
-                    break; // done!
-                }
-                throw new IllegalStateException("Expected LF character after CR character; received '" + ((char) c) + "'");
-            } else if (c == CR) {
-                endOfLineTrigger = true; // http spec requires CRLF line endings
-            } else {
-                ++charCount;
-            }
-        }
-        this.reader.reset();
-
-        final char[] chars = new char[charCount];
-        final int readChars = this.reader.read(chars);
-        assert readChars == charCount;
-        return new String(chars);
-    }
-
+    // Falls möglich, wird ein Zeilenumbruch übersprungen; ob
+    // dies klappt oder nicht, wird als Rückgabewert übergeben
     public boolean skipCRLF() throws IOException {
-        if (!this.isReadable(CRLF.length())
-                && !CRLF.equals(this.peek(CRLF.length()))) {
-            return false;
+        // Falls mindestens ein Zeilenumbruch gelesen werden kann
+        // und die nächsten zwei Zeichen (länge eines Zeilenumbruchs) auch
+        // wirklich ein Zeilenumbruch ist, ...
+        if (this.isReadable(CRLF.length())
+                || CRLF.equals(this.peek(CRLF.length()))) {
+            // ... wird dieser Zeilenumbruch übersprungen und ein Erfolg zurückgegeben; ...
+            this.skip(CRLF.length());
+            return true;
         }
-        this.skip(CRLF.length());
-        return true;
+        // ... falls kein Zeilenumbruch folgt, wird kein Erfolg zurückgegeben
+        return false;
     }
 
     public String read(final int length) throws IOException {
