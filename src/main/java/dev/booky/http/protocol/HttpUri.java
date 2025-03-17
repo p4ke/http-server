@@ -34,7 +34,7 @@ public record HttpUri(URI uri) {
         // Hier wird überprüft, dass ein "Hacker" nicht mithilfe von ".."
         // aus dem Root-Verzeichnis herauswandern kann und somit Zugriff auf alle Dateien
         // im System hätte
-        if (targetPath.toAbsolutePath().startsWith(root)) {
+        if (targetPath.toAbsolutePath().startsWith(root.toAbsolutePath())) {
             // Der Zielpfad ist immer noch im Root-Verzeichnis und damit gültig
             return targetPath;
         }
