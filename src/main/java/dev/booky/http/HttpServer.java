@@ -5,11 +5,13 @@ import dev.booky.http.log.LoggerFactory;
 import dev.booky.http.protocol.HttpHeaders;
 import dev.booky.http.protocol.HttpRequest;
 import dev.booky.http.protocol.HttpResponse;
-import dev.booky.http.protocol.HttpUri.UriImpl;
+import dev.booky.http.protocol.HttpUri;
 import dev.booky.http.util.HttpMethod;
 import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.MimeType;
 import dev.booky.http.util.StringUtil;
+import org.jspecify.annotations.NullMarked;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -24,18 +26,12 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.jspecify.annotations.NullMarked;
 
 import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_DISPOSITION;
 import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_LENGTH;
@@ -174,13 +170,16 @@ public class HttpServer implements AutoCloseable {
         if (method != HttpMethod.GET && method != HttpMethod.HEAD) {
             return request.buildError(STATUS_METHOD_NOT_ALLOWED, STATUS_METHOD_NOT_ALLOWED.getName());
         }
-        // Das Http-Protokoll erlaubt auch URIs wie z.B. "*";
-        // sowas ist nicht für eine Dateiabfrage erlaubt
-        if (!(request.getUri() instanceof UriImpl)) {
+        // Das Http-Protokoll erlaubt auch URIs wie z.B. "*" oder "test";
+        // sowas ist nicht für eine Dateiabfrage erlaubt, hier wird ein
+        // absoluter Pfad benötigt, d.h. der Pfad darf nicht leer sein und muss
+        // mit einem "/" starten
+        final String uriPath = request.getUri().uri().getPath();
+        if (uriPath.isEmpty() || uriPath.charAt(0) != '/') {
             return request.buildError(STATUS_BAD_REQUEST, "Invalid request URI");
         }
         // Aus der Anfrage wird der Zieldateipfad extrahiert, basierend auf den Server-Parametern
-        final Path targetPath = this.extractPath((UriImpl) request.getUri());
+        final Path targetPath = this.extractPath(request.getUri());
         // Falls die Datei NICHT existiert, wird ein Fehler zurückgegeben
         if (!Files.isRegularFile(targetPath)) {
             return request.buildError(STATUS_NOT_FOUND, "Path " + targetPath + " not found");
@@ -215,7 +214,7 @@ public class HttpServer implements AutoCloseable {
                 method == HttpMethod.GET ? () -> Files.newInputStream(targetPath) : null);
     }
 
-    private Path extractPath(final UriImpl uri) {
+    private Path extractPath(final HttpUri uri) {
         // Relativ vom Server-Verzeichnis wird ein Dateipfad aufgelöst
         final Path targetPath = uri.resolvePath(this.params.rootDir());
         // Falls der Dateipfad kein Ordner ist, wird dieser direkt zurückgegeben

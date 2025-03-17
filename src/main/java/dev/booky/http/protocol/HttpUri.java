@@ -1,57 +1,37 @@
 package dev.booky.http.protocol;
 
 import dev.booky.http.util.HttpReader;
-import java.io.IOException;
-import java.nio.file.Path;
 import org.jspecify.annotations.NullMarked;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 
-// https://www.rfc-editor.org/rfc/rfc2616#section-5.1.2
+// Siehe https://www.rfc-editor.org/rfc/rfc2616#section-5.1.2;
+// eine URI kann sowohl ein einzelnes "*" als auch eine absolute URI/Pfad
+// sein - Java's URI Klasse unterstützt beides
 @NullMarked
-public sealed interface HttpUri {
+public record HttpUri(URI uri) {
 
-    static HttpUri parseUri(final HttpReader reader) throws IOException {
-        final String string = reader.readLineUntilLWS();
-        return switch (string) {
-            case StarImpl.STAR_STRING -> StarImpl.INSTANCE;
-            default -> new UriImpl(URI.create(string));
-        };
+    public static HttpUri parseUri(final HttpReader reader) throws IOException {
+        final String uriString = reader.readLineUntilLWS();
+        return new HttpUri(URI.create(uriString));
+    }
+
+    public Path resolvePath(final Path root) {
+        // TODO ensure path is safe
+        final String uriPath = this.uri.getPath();
+        if (uriPath.isEmpty() || "/".equals(uriPath)) {
+            return root;
+        }
+        if (uriPath.charAt(0) == '/') {
+            return root.resolve(uriPath.substring(1));
+        }
+        return root.resolve(uriPath);
     }
 
     @Override
-    String toString();
-
-    record StarImpl() implements HttpUri {
-
-        public static final StarImpl INSTANCE = new StarImpl();
-
-        public static final char STAR = '*';
-        public static final String STAR_STRING = "*";
-
-        @Override
-        public String toString() {
-            return STAR_STRING;
-        }
-    }
-
-    record UriImpl(URI uri) implements HttpUri {
-
-        public Path resolvePath(final Path root) {
-            // TODO ensure path is safe
-            final String uriPath = this.uri.getPath();
-            if (uriPath.isEmpty() || "/".equals(uriPath)) {
-                return root;
-            }
-            if (uriPath.charAt(0) == '/') {
-                return root.resolve(uriPath.substring(1));
-            }
-            return root.resolve(uriPath);
-        }
-
-        @Override
-        public String toString() {
-            return this.uri.toString();
-        }
+    public String toString() {
+        return this.uri.toString();
     }
 }
