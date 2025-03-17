@@ -1,7 +1,6 @@
 package dev.booky.http.log;
 
 import dev.booky.http.util.StringUtil;
-import java.util.Arrays;
 import org.jspecify.annotations.NullMarked;
 
 import java.io.PrintStream;
@@ -9,22 +8,20 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.util.Arrays;
 import java.util.Locale;
 
 @NullMarked
 public final class Logger {
 
-    // Das Format, mit dem die Zeit in Lognachrichten angezeigt wird, z.B.: "[19:59:59]"
+    // Das Format, mit dem die Zeit in Lognachrichten angezeigt wird, z.B.: "19:59:59"
     private static final DateTimeFormatter TIME_FORMAT = new DateTimeFormatterBuilder()
-            .appendLiteral('[')
             .appendValue(ChronoField.HOUR_OF_DAY, 2)
             .appendLiteral(':')
             .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
             .appendLiteral(':')
             .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
-            .toFormatter(Locale.ROOT)
-            .appendLiteral(']');
-    private static final Object[] EMPTY_ARGS = new Object[0];
+            .toFormatter(Locale.ROOT);
 
     // Der Name dieses Loggers
     private final String name;
@@ -45,19 +42,20 @@ public final class Logger {
 
     private String formatLine(final Level level, final String line) {
         // Baut eine Lognachrichtzeile zusammen, z.B.:
-        // "[19:59:59] [INFO] [Test]"
+        // "[19:59:59 INFO] [Test] Hallo Welt!"
         final StringBuilder log = new StringBuilder();
-        log.append(TIME_FORMAT.format(LocalTime.now()));
-        logtime.append(" [").append(level.name).append(']');
-        if (!this.name.isEmpty()) { 
+        log.append('[').append(TIME_FORMAT.format(LocalTime.now()));
+        log.append(' ').append(level.name).append(']');
+        if (!this.name.isEmpty()) {
             // Der Logger-Name wird nur eingebaut, wenn er nicht leer ist
             log.append(" [").append(this.name).append(']');
         }
-        return log.append(line).append('\n').toString();
+        // Schließlich wird die eigentliche Lognachricht an die Meta-Infos angehängt
+        return log.append(' ').append(line).append('\n').toString();
     }
 
     public void log(final Level level, final String message, final Object... args) {
-        // Falls das letzte Argument ein Fehler ist, wird der Fehler seperat ausgegeben
+        // Falls das letzte Argument ein Fehler ist, wird der Fehler separat ausgegeben
         // So etwas machen auch häufig verwendete Logger-Bibliotheken wie z.B. Log4J
         if (args.length > 0 && args[args.length - 1] instanceof final Throwable throwable) {
             // Der Fehler wird aus dem eigentlichen Argumenten-Array ausgebaut
