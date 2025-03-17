@@ -61,7 +61,7 @@ public class HttpRequest {
         // eingelesen und zu einem UTF-8-kodiertem Byte-Array umgewandelt;
         // zum aktuellen Zeitpunkt werden durch den Http-Reader dadurch
         // keine Binäranfragen unterstützt, sondern nur UTF-8-kodierte Textdateien
-        final String bodyString = reader.getRemaining();
+        final String bodyString = reader.readRemaining();
         final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 
         return new HttpRequest(method, uri, version, headers, bodyBytes);

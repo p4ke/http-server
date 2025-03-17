@@ -2,20 +2,19 @@ package dev.booky.http.protocol;
 
 import dev.booky.http.HttpServer;
 import dev.booky.http.util.HttpReader;
-import dev.booky.http.util.StringUtil;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 
@@ -78,8 +77,8 @@ public final class HttpHeaders {
             // Ein Header ist normalerweise nach "<Name> ': ' <Wert>" formatiert -
             // deshalb wird jetzt bis zum ersten ":" der Header-Name eingelesen
             final String name = reader.readLineUntil(':');
-            // Es wird das ":" übersprungen, sowie jede weiteren Weißzeichen
-            reader.skip().skipLWS();
+            reader.skip(1); // Das Trennzeichen zwischen Header-Name und Header-Wert (":") wird übersprungen
+            reader.skipLWS(); // Weißzeichen werden übersprungen
             // Der Wert des Headers kann auch mehrzeilig sein - es wird nun bis zum nächsten
             // Zeilenbruch ohne Fortsetzung des Headers der Wert des Headers eingelesen
             final String value = reader.readMultiLine();
