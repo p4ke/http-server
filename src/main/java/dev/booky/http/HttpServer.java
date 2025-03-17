@@ -214,9 +214,15 @@ public class HttpServer implements AutoCloseable {
                 method == HttpMethod.GET ? () -> Files.newInputStream(targetPath) : null);
     }
 
+    // Hier wird die Anfragen-URI umgewandelt und es wird, falls es ein Ordner ist,
+    // versucht eine Index-Datei aufzufinden
     private Path extractPath(final HttpUri uri) {
         // Relativ vom Server-Verzeichnis wird ein Dateipfad aufgelöst
         final Path targetPath = uri.resolvePath(this.params.rootDir());
+        // Falls der Dateipfad ungültig war, wird einfach das Root-Verzeichnis zurückgegeben
+        if (targetPath == null) {
+            return this.params.rootDir();
+        }
         // Falls der Dateipfad kein Ordner ist, wird dieser direkt zurückgegeben
         if (!Files.isDirectory(targetPath)) {
             return targetPath;
