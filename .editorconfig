@@ -1,0 +1,16 @@
+# Hier können Einstellungen für viele Entwicklungsumgebungen eingestellt
+# werden, welche sich an diesen Richtlinien orientieren um den Quellcode
+# überall gleich zu formatieren
+
+[*]
+# Jede Datei sollte immer mit einer leeren Zeile enden
+insert_final_newline = true
+
+[*.java]
+# Legt Einstellungen für Einrückungen fest
+indent_style = space
+indent_size = 4
+ij_continuation_indent_size = 8
+# Legt fest, dass das Schlagwort "final" generiert werden soll
+ij_java_generate_final_locals = true
+ij_java_generate_final_parameters = true
