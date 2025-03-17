@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 
+// Beinhaltet eine Map an Http-Header-Namen zu Http-Header-Werten
 @NullMarked
 public final class HttpHeaders {
 

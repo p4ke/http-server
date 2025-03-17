@@ -1,10 +1,10 @@
 package dev.booky.http.util;
 
 import dev.booky.http.protocol.HttpDefinitions;
+import org.jspecify.annotations.NullMarked;
+
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
-import org.jspecify.annotations.NullMarked;
 
 import static dev.booky.http.protocol.HttpDefinitions.CR;
 import static dev.booky.http.protocol.HttpDefinitions.CRLF;
@@ -21,10 +21,6 @@ public final class HttpReader {
 
     public HttpReader(final Reader reader) {
         this.reader = reader;
-    }
-
-    public String readToken() throws IOException {
-        return this.readLineUntilLWS();
     }
 
     public String readLineUntilLWS() throws IOException {

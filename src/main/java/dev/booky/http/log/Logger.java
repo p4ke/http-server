@@ -26,7 +26,7 @@ public final class Logger {
     // Der Name dieses Loggers
     private final String name;
     // Die Standard-Output- und Standard-Error-Streams, mit welchen
-    // Lognachrichten an die Programmschnittestelle geleitet werden
+    // Nachrichten an die Programmschnittestelle geleitet werden
     private final PrintStream stout;
     private final PrintStream sterr;
 
@@ -41,17 +41,11 @@ public final class Logger {
     }
 
     private String formatLine(final Level level, final String line) {
-        // Baut eine Lognachrichtzeile zusammen, z.B.:
-        // "[19:59:59 INFO] [Test] Hallo Welt!"
-        final StringBuilder log = new StringBuilder();
-        log.append('[').append(TIME_FORMAT.format(LocalTime.now()));
-        log.append(' ').append(level.name).append(']');
-        if (!this.name.isEmpty()) {
-            // Der Logger-Name wird nur eingebaut, wenn er nicht leer ist
-            log.append(" [").append(this.name).append(']');
-        }
-        // Schließlich wird die eigentliche Lognachricht an die Meta-Infos angehängt
-        return log.append(' ').append(line).append('\n').toString();
+        // Baut eine Log-Zeile zusammen, z.B. "[19:59:59 INFO] [Test] Hallo Welt!"
+        return '[' + TIME_FORMAT.format(LocalTime.now())
+                + ' ' + level.name + "] [" + this.name + "] " +
+                // Schließlich wird die eigentliche Nachricht an die Meta-Infos angehängt
+                line + '\n';
     }
 
     public void log(final Level level, final String message, final Object... args) {
@@ -60,26 +54,35 @@ public final class Logger {
         if (args.length > 0 && args[args.length - 1] instanceof final Throwable throwable) {
             // Der Fehler wird aus dem eigentlichen Argumenten-Array ausgebaut
             final Object[] trimmedArgs = Arrays.copyOf(args, args.length - 1);
-            this.log0(level, message, trimmedArgs);
-            this.log0(level, throwable);
+            this.logDirect(level, message, trimmedArgs);
+            this.logError(level, throwable);
         } else {
-            this.log0(level, message, args);
+            this.logDirect(level, message, args);
         }
     }
 
-    private void log0(final Level level, final String message, final Object... args) {
+    private void logDirect(final Level level, final String message, final Object... args) {
+        // Basierend auf dem angegebenen Log-Level wird ein Output-Stream ausgesucht
+        final PrintStream stream = this.getStream(level);
+
+        // Falls es Argumente gibt, werden diese in der angegebenen Nachricht ersetzt
         final String formattedMessage = args.length != 0
                 ? message.formatted(args) : message;
-
+        // Die formatierte Nachricht wird an Zeilenumbrüchen getrennt, damit
+        // jede einzelne Zeile vernünftig formatiert werden kann
         final String[] lines = StringUtil.split(formattedMessage, '\n');
-        final PrintStream stream = this.getStream(level);
         for (int i = 0, len = lines.length; i < len; ++i) {
-            stream.print(this.formatLine(level, lines[0]));
+            // Nun wird jede einzelne Zeile formatiert ...
+            final String formattedLine = this.formatLine(level, lines[0]);
+            // ... und an den Output-Stream ausgegeben, um sie in der Konsole anzuzeigen
+            stream.print(formattedLine);
         }
     }
 
-    private void log0(final Level level, final Throwable throwable) {
+    private void logError(final Level level, final Throwable throwable) {
+        // Basierend auf dem angegebenen Log-Level wird ein Output-Stream ausgesucht
         final PrintStream stream = this.getStream(level);
+        // Der komplette Error wird einfach an den Output-Stream weitergegeben
         throwable.printStackTrace(stream);
     }
 
@@ -101,10 +104,6 @@ public final class Logger {
 
     public void error(final String message, final Object... args) {
         this.log(Level.ERROR, message, args);
-    }
-
-    public String getName() {
-        return this.name;
     }
 
     // Mögliche Standard-Output-Streams

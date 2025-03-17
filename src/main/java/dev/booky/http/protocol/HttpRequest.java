@@ -11,6 +11,8 @@ import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_LENGTH;
 import static dev.booky.http.protocol.HttpDefinitions.HEADER_CONTENT_TYPE;
 import static dev.booky.http.util.MimeType.TYPE_PLAIN_UTF8;
 
+// Das Objekt, welche alle Attribute einer Http-Anfrage beinhaltet
+// und die Logik, um diese aus Text auszulesen
 @NullMarked
 public class HttpRequest {
 
@@ -58,7 +60,7 @@ public class HttpRequest {
         // Schließlich wird der restliche Anfragen-Inhalt als Zeichenkette
         // eingelesen und zu einem UTF-8-kodiertem Byte-Array umgewandelt;
         // zum aktuellen Zeitpunkt werden durch den Http-Reader dadurch
-        // keine Binäranfragen unterstützt
+        // keine Binäranfragen unterstützt, sondern nur UTF-8-kodierte Textdateien
         final String bodyString = reader.getRemaining();
         final byte[] bodyBytes = bodyString.getBytes(StandardCharsets.UTF_8);
 

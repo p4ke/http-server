@@ -3,8 +3,8 @@ package dev.booky.http.protocol;
 import dev.booky.http.util.HttpReader;
 import java.io.IOException;
 
-// Die unterstützen Http-Versionen; auch wenn es bereits schon
-// HTTP/3 auf Quic-UDP-Protokoll-Basis existiert, unterstützt diese Http-Server-Implementation
+// Die unterstützen Http-Versionen; auch wenn schon HTTP/3 auf
+// Quic-UDP-Protokoll-Basis existiert, unterstützt diese Http-Server-Implementation
 // bis jetzt nur unverschlüsseltes HTTP/1.0 und HTTP/1.1
 public final class HttpVersion {
 

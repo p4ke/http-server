@@ -1,9 +1,10 @@
 package dev.booky.http.util;
 
-import java.io.IOException;
-import java.util.Objects;
 import org.jspecify.annotations.NullMarked;
 
+import java.io.IOException;
+
+// Eine Hilfsklasse, welche einige Konstante und Logik für Http-Methoden enthält
 @NullMarked
 public final class HttpMethod {
 
@@ -23,9 +24,13 @@ public final class HttpMethod {
         this.method = method;
     }
 
+    // Liest die benutzte Http-Methode aus dem Http-Reader
     public static HttpMethod parseMethod(final HttpReader reader) throws IOException {
-        reader.skipLWS();
-        final String method = reader.readToken();
+        reader.skipLWS(); // zuerst werden wieder Weißzeichen übersprungen
+        // Danach wird bis zum nächsten Weißzeichen Text gelesen
+        final String method = reader.readLineUntilLWS();
+        // Schließlich wird die Methode zurückgegeben - die standardisierten
+        // Methoden haben einige Konstanten oben in der Klasse
         return switch (method) {
             case "OPTIONS" -> OPTIONS;
             case "GET" -> GET;
@@ -41,19 +46,6 @@ public final class HttpMethod {
 
     public String getMethod() {
         return this.method;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) return true;
-        if (obj == null || this.getClass() != obj.getClass()) return false;
-        final HttpMethod that = (HttpMethod) obj;
-        return Objects.equals(this.method, that.method);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(this.method);
     }
 
     @Override

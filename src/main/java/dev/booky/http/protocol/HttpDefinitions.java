@@ -2,6 +2,8 @@ package dev.booky.http.protocol;
 
 import org.jspecify.annotations.NullMarked;
 
+// Eine Hilfsklasse, welche ein paar statische Konstante definiert,
+// die immer wieder im Http-Protokoll auftreten
 @NullMarked
 public final class HttpDefinitions {
 
@@ -10,7 +12,6 @@ public final class HttpDefinitions {
     public static final char LF = '\n'; // "line feed"
     public static final char SP = ' '; // "space"
     public static final char HT = '\t'; // "horizontal tab"
-    public static final char QUOTE = '"'; // "double quote mark"
 
     // Statische Text-Sequenzen von https://www.rfc-editor.org/rfc/rfc2616#section-2.2
     public static final String CRLF = Character.toString(CR) + LF;

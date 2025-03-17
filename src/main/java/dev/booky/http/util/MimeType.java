@@ -5,14 +5,16 @@ import org.jspecify.annotations.NullMarked;
 import java.nio.file.Path;
 import java.util.Map;
 
+// Eine Hilfsklasse um MIME-Typen zu repräsentieren, welche auch
+// einige Standard-MIME-Typen beinhaltet
 @NullMarked
-public class MimeType {
+public final class MimeType {
 
     public static final MimeType TYPE_HTML_UTF8 = new MimeType("text", "html", Map.of("charset", "utf-8"));
     public static final MimeType TYPE_PLAIN_UTF8 = new MimeType("text", "plain", Map.of("charset", "utf-8"));
     public static final MimeType TYPE_OCTET_STREAM = new MimeType("application", "octet-stream");
 
-    // some types from https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types
+    // Basierend auf den MIME-Typen von https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types
     public static final MimeType TYPE_AAC = new MimeType("audio", "aac");
     public static final MimeType TYPE_APNG = new MimeType("image", "apng");
     public static final MimeType TYPE_AVIF = new MimeType("image", "avif");
@@ -93,12 +95,21 @@ public class MimeType {
         this.properties = properties;
     }
 
+    // Basierend auf dem Dateinamen wird ein häufig genutzter MIME-Typ ausgewählt
     public static MimeType guessFromPathName(final Path path) {
+        // Der Dateiname wird als Zeichenkette extrahiert
         final String pathName = path.getFileName().toString();
+        // Es wird der letzte Punkt im Dateinamen gesucht, um
+        // die Dateiendung herauszufinden
         final int fileExtIdx = pathName.lastIndexOf('.');
         if (fileExtIdx == -1) {
+            // Falls keine Dateiendung vorliegt, wird angenommen, dass es sich
+            // hier um eine Binärdatei handelt
             return TYPE_BIN;
         }
+        // Falls eine Dateiendung vorliegt, wird basierend auf dieser Endung
+        // ein bestimmter MIME-Typ ausgewählt; falls es sich dabei um ein Textformat
+        // handelt, wird aktuell immer UTF-8 als Kodierung übermittelt
         final String fileExt = pathName.substring(fileExtIdx + 1);
         return switch (fileExt) {
             case "htm", "html" -> TYPE_HTML_UTF8;
@@ -161,16 +172,10 @@ public class MimeType {
             case "xul" -> TYPE_XUL_UTF8;
             case "zip" -> TYPE_ZIP;
             case "7z" -> TYPE_7ZIP;
-            default -> TYPE_BIN; // "bin" and default
+            // Unbekannte Dateiendung, es wird angenommen, dass es
+            // sich um eine Binärdatei handelt
+            default -> TYPE_BIN;
         };
-    }
-
-    public boolean isAnyType() {
-        return "*".equals(this.type) && "*".equals(this.subtype);
-    }
-
-    public boolean isAnySubType() {
-        return "*".equals(this.subtype);
     }
 
     public String getType() {

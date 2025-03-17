@@ -10,6 +10,8 @@ import java.nio.file.Path;
 @NullMarked
 public final class ServerMain {
 
+    // Hier werden zwei Standard-Werte festgesetzt, falls nicht
+    // per Programmparameter überschrieben
     private static final int DEFAULT_HTTP_PORT = 8080;
     private static final String DEFAULT_HTTP_DIR = "demo";
 
