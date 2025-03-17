@@ -11,55 +11,95 @@ import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 import static dev.booky.http.protocol.HttpDefinitions.LF;
 import static dev.booky.http.protocol.HttpDefinitions.SP;
 
+// Einer der Hauptbestandteile dieses Projekts, da hier
+// aus einem Text-Reader der Java-Standard-Bibliothek
+// (mit mark-/reset-Unterstützung) bestimmte mehrfach verwendeten
+// String-Strukturen ausgelesen werden können
 @NullMarked
 public final class HttpReader {
 
+    // Bestimmte Konstante, siehe deren Verwendung für mehr Informationen
     private static final int REMAINING_TEXT_CHAR_BUFFER_SIZE = 8192;
     private static final int MAX_LINE_LENGTH = 256;
 
+    // Der eigentliche Reader (mit mark-/reset-Unterstützung)
     private final Reader reader;
 
     public HttpReader(final Reader reader) {
         this.reader = reader;
     }
 
+    // Liest die aktuelle Zeile bis ein Weißzeichen auftritt
     public String readLineUntilLWS() throws IOException {
+        // Zuerst wird die aktuelle Position markiert
         this.reader.mark(MAX_LINE_LENGTH);
+        // Nun wird der Reader so lange gelesen, bis ein Weißzeichen auftritt;
+        // zudem wird gezählt, wie viele Zeichen bis zu dem Weißzeichen gelesen werden konnten
         int charCount = 0;
         int c;
         while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
             ++charCount;
         }
+        // Entweder wurde ein Weißzeichen gefunden oder der Reader hat das Ende erreicht -
+        // auf jeden Fall wird erstmal der Reader wieder zurück an die markierte Position gesetzt
         this.reader.reset();
+        // Falls tatsächlich der Reader das Ende erreicht hat, wird eine Fehlermeldung ausgegeben -
+        // diese Methode erwartet, dass noch mindestens ein Weißzeichen auftreten wird
         if (c == -1) {
             throw new IllegalStateException("Can't find LWS in remaining string: '" + this.getRemaining() + "'");
         }
+        // Schließlich wird ein Array an Zeichen erstellt, basierend darauf, wie viele
+        // vorher bis zum Weißzeichen gelesen werden konnten
         final char[] chars = new char[charCount];
+        // Nun wird das soeben erstelle Zeichen-Array mit dem Inhalt des Readers gefüllt
         final int readChars = this.reader.read(chars);
+        // Hier wird sich vergewissert, dass der Reader tatsächlich die volle gezählte Länge
+        // der Zeichenkette eingelesen hat; dies sollte nie fehlschlagen
         assert readChars == charCount;
+        // Schließlich wird ein Java Zeichenketten-Objekt mithilfe des
+        // eingelesenen Zeichen-Arrays erstellt
         return new String(chars);
     }
 
+    // Liest die aktuelle Zeile, bis ein bestimmtes Zeichen auftritt;
+    // falls die Zeile (oder der ganze Reader) vorzeitig endet, wird ein Fehler geworfen
     public String readLineUntil(final char searchChar) throws IOException {
+        // Zuerst wird die aktuelle Position markiert
         this.reader.mark(MAX_LINE_LENGTH);
+        // Nun wird der Reader so lange gelesen, bis das gesuchte Zeichen auftritt;
+        // zudem wird gezählt, wie viele Zeichen bis zu dem Weißzeichen gelesen werden konnten
         int charCount = 0;
         int c;
         while ((c = this.reader.read()) != -1 && c != searchChar) {
+            // Überprüft zusätzlich, dass nicht das Ende einer Zeile erreicht wurde
             if (c == CR || c == LF) {
+                // Es wurde das Ende einer Zeile erreicht - der Reader wird
+                // zurück an die markierte Position gesetzt und es wird ein Fehler geworfen
                 this.reader.reset();
                 throw new IllegalArgumentException("Line ends before next occurrence of '"
                         + c + "' in remaining string: '" + this.getRemaining() + "'");
             }
             ++charCount;
         }
+        // Entweder wurde das Zeichen gefunden oder der Reader hat das Ende erreicht -
+        // auf jeden Fall wird erstmal der Reader wieder zurück an die markierte Position gesetzt
         this.reader.reset();
+        // Falls tatsächlich der Reader das Ende erreicht hat, wird eine Fehlermeldung ausgegeben -
+        // diese Methode erwartet, dass das gesuchte Zeichen auf jeden Fall auftreten wird
         if (c == -1) {
             throw new IllegalStateException("Can't find character '"
                     + c + "' in remaining string: '" + this.getRemaining() + "'");
         }
+        // Schließlich wird ein Array an Zeichen erstellt, basierend darauf, wie viele
+        // vorher bis zum gesuchten Zeichen gelesen werden konnten
         final char[] chars = new char[charCount];
+        // Nun wird das soeben erstelle Zeichen-Array mit dem Inhalt des Readers gefüllt
         final int readChars = this.reader.read(chars);
+        // Hier wird sich vergewissert, dass der Reader tatsächlich die volle gezählte Länge
+        // der Zeichenkette eingelesen hat; dies sollte nie fehlschlagen
         assert readChars == charCount;
+        // Schließlich wird ein Java Zeichenketten-Objekt mithilfe des
+        // eingelesenen Zeichen-Arrays erstellt
         return new String(chars);
     }
 
