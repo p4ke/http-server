@@ -69,11 +69,11 @@ public class HttpRequest {
     // einfache Http-Fehlermeldung-Antwort zu erstellen
     public HttpResponse buildError(final HttpStatus status, final String message) {
         final byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-        final Map<String, String> headers = Map.of(
+        final HttpHeaders headers = HttpHeaders.buildResponseHeaders(Map.of(
                 HEADER_CONTENT_TYPE, TYPE_PLAIN_UTF8.getType(),
                 HEADER_CONTENT_LENGTH, Integer.toString(messageBytes.length)
-        );
-        return new HttpResponse(this.version, status, new HttpHeaders(headers), messageBytes);
+        ));
+        return new HttpResponse(this.version, status, headers, messageBytes);
     }
 
     public HttpMethod getMethod() {

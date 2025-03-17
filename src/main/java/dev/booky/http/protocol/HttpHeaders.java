@@ -1,10 +1,14 @@
 package dev.booky.http.protocol;
 
+import dev.booky.http.HttpServer;
 import dev.booky.http.util.HttpReader;
 import dev.booky.http.util.StringUtil;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -18,9 +22,14 @@ import static dev.booky.http.protocol.HttpDefinitions.CRLF;
 @NullMarked
 public final class HttpHeaders {
 
+    // Siehe https://www.rfc-editor.org/rfc/rfc2616#section-14.18
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(
+                    "EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
+            .withZone(ZoneId.of("GMT"));
+
     private final Map<String, String> headers;
 
-    public HttpHeaders(final Map<String, String> headers) {
+    private HttpHeaders(final Map<String, String> headers) {
         this.headers = headers.entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .map(entry -> Map.entry(normalizeHeaderName(entry.getKey()), entry.getValue()))
@@ -39,6 +48,19 @@ public final class HttpHeaders {
         if (value1 == null) return value2;
         if (value2 == null) return value1;
         return value1 + ',' + value2;
+    }
+
+    public static HttpHeaders buildResponseHeaders(final Map<String, String> headers) {
+        final Map<String, String> allHeaders = new HashMap<>();
+        for (final Map.Entry<String, String> entry : headers.entrySet()) {
+            // Um Dopplung bei den Antwort-Headern zu vermeiden,
+            // werden hier die Header-Namen normalisiert
+            allHeaders.put(normalizeHeaderName(entry.getKey()), entry.getValue());
+        }
+        // Falls nicht bereits gesetzt, werden hier einige Standard-Header gesetzt
+        allHeaders.putIfAbsent("server", HttpServer.class.getSimpleName());
+        allHeaders.putIfAbsent("date", DATE_FORMAT.format(ZonedDateTime.now()));
+        return new HttpHeaders(allHeaders);
     }
 
     // Nutzt den HTTP-Reader, um alle HTTP-Header auszulesen, bis entweder der

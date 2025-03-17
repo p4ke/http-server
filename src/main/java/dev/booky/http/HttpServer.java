@@ -24,8 +24,12 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -90,12 +94,6 @@ public class HttpServer implements AutoCloseable {
                 StringUtil.stringifyBindAddress(address));
 
         return new HttpServer(socket, params);
-    }
-
-    private void addStaticHeaders(final Map<String, String> headers) {
-        // TODO add sources, fix date formatting
-        headers.put("server", this.getClass().getSimpleName());
-        headers.put("date", new Date().toString());
     }
 
     private Thread constructThread(final Runnable runnable) {
@@ -213,7 +211,7 @@ public class HttpServer implements AutoCloseable {
         // Die Antwort wird gebaut - der Dateiinhalt wird als Stream-Supplier angegeben,
         // damit die Datei direkt zur Antwort "gestreamt" werden kann, ohne vorher komplett im RAM
         // liegen zu müssen
-        return new HttpResponse(request.getVersion(), STATUS_OK, new HttpHeaders(headers),
+        return new HttpResponse(request.getVersion(), STATUS_OK, HttpHeaders.buildResponseHeaders(headers),
                 method == HttpMethod.GET ? () -> Files.newInputStream(targetPath) : null);
     }
 
