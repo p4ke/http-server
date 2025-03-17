@@ -1,4 +1,4 @@
-# https://i.imgur.com/AmDFF6X.png
+# Hier werden Dateien markiert, welche von dem VCS-Tool Git ignoriert werden sollen
 /.gitconfig
 /.idea/
 /build/
