@@ -1,3 +1,5 @@
+<!-- Dieses Dokument ist auch als PDF lesbar, siehe "README.pdf" -->
+
 # HTTP Server
 
 - Einfache Implementation eines HTTP/1.1 Servers in Java
@@ -5,9 +7,16 @@
 
 ## Testen
 
-Unter Windows in Powershell: `./gradlew.bat run`.
+Für dieses Projekt muss mindestens Java 8 installiert sein. Das Build-Tool Gradle
+([https://gradle.org/](https://gradle.org/)) lädt automatisch beim ersten Test die richtige Java-Version herunter.
 
-Dann sollte eine Beispielwebsite im Browser unter "[http://127.0.0.1:8080](http://127.0.0.1:8080)" erreichbar sein.
+Um unter Windows dieses Projekt zu testen, nutzt man am besten Powershell. Zuerst sollte man
+den Ordner des Projekts betreten (z.B. indem man "`cd `" eingibt und dann den Projektordner in Powershell zieht).
+Danach kann man mit dem Gradle-Wrapper-Skript `gradlew.bat` das Projekt testen: `./gradlew.bat run`.
+Der erste Test benötigt gegebenenfalls etwas länger, da Gradle erst sich selber herunterladen muss. 
+
+Sobald der Test läuft, sollte eine Beispielwebsite im Browser
+unter "[http://127.0.0.1:8080](http://127.0.0.1:8080)" erreichbar sein.
 
 ## Hinweise
 
@@ -31,7 +40,7 @@ des heutigen Internets ist und HTTP/1.1 ein einfaches, rein textbasiertes Protok
 bei diesem Schulprojekt für eine einfache Implementation des HTTP/1.1-Protokolls entschieden.
 
 Bei der Umsetzung dieses Programmierprojekts habe ich zuerst damit angefangen, die Projektstruktur
-einzurichten. Mit dem Build-Tool [Gradle](https://gradle.org/) kann man einfach
+einzurichten. Mit dem Build-Tool Gradle ([https://gradle.org/](https://gradle.org/)) kann man einfach
 Projekte aufsetzen, compilen und testen.
 
 Nach dem Aufsetzen des Projektes habe ich angefangen, ein Logging-System zu programmieren.
@@ -56,12 +65,15 @@ Verbindung gelesen wurden und stattdessen stream-basiert die Anfrage direkt ausl
 ## Quellen
 
 - [RFC 2616: Hypertext Transfer Protocol -- HTTP/1.1](https://www.rfc-editor.org/rfc/rfc2616)
+    - https://www.rfc-editor.org/rfc/rfc2616
     - Zugriff am 12.03.2025 um 10:09 Uhr CET
     - Siehe auch Datei "sources" → "rfc2616.txt"
 - [Common MIME types - HTTP | MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types)
+    - https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types 
     - Zugriff am 12.03.2025 um 10:17 Uhr CET
     - Siehe auch Datei "sources" → "MDN_HTTP_Common_MIME_types.png"
 - [HTTP response status codes - HTTP | MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+    - https://developer.mozilla.org/en-US/docs/Web/HTTP/Status 
     - Zugriff am 12.03.2025 um 10:14 Uhr CET
     - Siehe auch Datei "sources" → "MDN_HTTP_HTTP_response_status_codes.png"
 
