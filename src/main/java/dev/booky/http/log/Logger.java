@@ -14,6 +14,7 @@ import java.util.Locale;
 @NullMarked
 public final class Logger {
 
+    // Das Format, mit dem die Zeit in Lognachrichten angezeigt wird, z.B.: "[19:59:59]"
     private static final DateTimeFormatter TIME_FORMAT = new DateTimeFormatterBuilder()
             .appendLiteral('[')
             .appendValue(ChronoField.HOUR_OF_DAY, 2)
@@ -21,30 +22,45 @@ public final class Logger {
             .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
             .appendLiteral(':')
             .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
-            .toFormatter(Locale.ROOT);
+            .toFormatter(Locale.ROOT)
+            .appendLiteral(']');
     private static final Object[] EMPTY_ARGS = new Object[0];
 
+    // Der Name dieses Loggers
     private final String name;
-    private final String formattedName;
-
+    // Die Standard-Output- und Standard-Error-Streams, mit welchen
+    // Lognachrichten an die Programmschnittestelle geleitet werden
     private final PrintStream stout;
     private final PrintStream sterr;
 
-    public Logger(final String name, final PrintStream stout, final PrintStream sterr) {
+    public Logger(
+            final String name,
+            final PrintStream stout,
+            final PrintStream sterr
+    ) {
         this.name = name;
-        this.formattedName = !name.isEmpty() ? "[%s] ".formatted(name) : "";
-
         this.stout = stout;
         this.sterr = sterr;
     }
 
     private String formatLine(final Level level, final String line) {
-        final String time = TIME_FORMAT.format(LocalTime.now());
-        return time + level.formattedName + this.formattedName + line + '\n';
+        // Baut eine Lognachrichtzeile zusammen, z.B.:
+        // "[19:59:59] [INFO] [Test]"
+        final StringBuilder log = new StringBuilder();
+        log.append(TIME_FORMAT.format(LocalTime.now()));
+        logtime.append(" [").append(level.name).append(']');
+        if (!this.name.isEmpty()) { 
+            // Der Logger-Name wird nur eingebaut, wenn er nicht leer ist
+            log.append(" [").append(this.name).append(']');
+        }
+        return log.append(line).append('\n').toString();
     }
 
     public void log(final Level level, final String message, final Object... args) {
+        // Falls das letzte Argument ein Fehler ist, wird der Fehler seperat ausgegeben
+        // So etwas machen auch häufig verwendete Logger-Bibliotheken wie z.B. Log4J
         if (args.length > 0 && args[args.length - 1] instanceof final Throwable throwable) {
+            // Der Fehler wird aus dem eigentlichen Argumenten-Array ausgebaut
             final Object[] trimmedArgs = Arrays.copyOf(args, args.length - 1);
             this.log0(level, message, trimmedArgs);
             this.log0(level, throwable);
@@ -70,49 +86,36 @@ public final class Logger {
     }
 
     private PrintStream getStream(final Level level) {
+        // Löst den jeweiligen Output-Stream aus einem Log-Level auf
         return switch (level.stream) {
             case OUT -> this.stout;
             case ERR -> this.sterr;
         };
     }
 
-    public void log(final Level level, final String message) {
-        this.log(level, message, EMPTY_ARGS);
-    }
-
     public void info(final String message, final Object... args) {
         this.log(Level.INFO, message, args);
-    }
-
-    public void info(final String message) {
-        this.info(message, EMPTY_ARGS);
     }
 
     public void warn(final String message, final Object... args) {
         this.log(Level.WARN, message, args);
     }
 
-    public void warn(final String message) {
-        this.warn(message, EMPTY_ARGS);
-    }
-
     public void error(final String message, final Object... args) {
         this.log(Level.ERROR, message, args);
-    }
-
-    public void error(final String message) {
-        this.error(message, EMPTY_ARGS);
     }
 
     public String getName() {
         return this.name;
     }
 
+    // Mögliche Standard-Output-Streams
     private enum StandardStream {
         OUT,
         ERR,
     }
 
+    // Mögliche Log-Level
     public enum Level {
 
         INFO(StandardStream.OUT, "INFO"),
@@ -120,11 +123,11 @@ public final class Logger {
         ERROR(StandardStream.ERR, "ERROR");
 
         private final StandardStream stream;
-        private final String formattedName;
+        private final String name;
 
         Level(final StandardStream stream, final String name) {
             this.stream = stream;
-            this.formattedName = " %s] ".formatted(name);
+            this.name = name;
         }
     }
 }
