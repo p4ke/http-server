@@ -40,25 +40,8 @@ public final class HttpReader {
         while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
             ++charCount;
         }
-        // Entweder wurde ein Weißzeichen gefunden oder der Reader hat das Ende erreicht -
-        // auf jeden Fall wird erstmal der Reader wieder zurück an die markierte Position gesetzt
-        this.reader.reset();
-        // Falls tatsächlich der Reader das Ende erreicht hat, wird eine Fehlermeldung ausgegeben -
-        // diese Methode erwartet, dass noch mindestens ein Weißzeichen auftreten wird
-        if (c == -1) {
-            throw new IllegalStateException("Can't find LWS in remaining string: '" + this.getRemaining() + "'");
-        }
-        // Schließlich wird ein Array an Zeichen erstellt, basierend darauf, wie viele
-        // vorher bis zum Weißzeichen gelesen werden konnten
-        final char[] chars = new char[charCount];
-        // Nun wird das soeben erstelle Zeichen-Array mit dem Inhalt des Readers gefüllt
-        final int readChars = this.reader.read(chars);
-        // Hier wird sich vergewissert, dass der Reader tatsächlich die volle gezählte Länge
-        // der Zeichenkette eingelesen hat; dies sollte nie fehlschlagen
-        assert readChars == charCount;
-        // Schließlich wird ein Java Zeichenketten-Objekt mithilfe des
-        // eingelesenen Zeichen-Arrays erstellt
-        return new String(chars);
+        // Ruft gemeinsame Logik mit der Methode "HttpReader#readLineUntil(char)" auf
+        return this.readLineUntil0(c, charCount);
     }
 
     // Liest die aktuelle Zeile, bis ein bestimmtes Zeichen auftritt;
@@ -81,14 +64,18 @@ public final class HttpReader {
             }
             ++charCount;
         }
+        // Ruft gemeinsame Logik mit der Methode "HttpReader#readLineUntilLWS()" auf
+        return this.readLineUntil0(c, charCount);
+    }
+
+    private String readLineUntil0(final int lastChar, final int charCount) throws IOException {
         // Entweder wurde das Zeichen gefunden oder der Reader hat das Ende erreicht -
         // auf jeden Fall wird erstmal der Reader wieder zurück an die markierte Position gesetzt
         this.reader.reset();
         // Falls tatsächlich der Reader das Ende erreicht hat, wird eine Fehlermeldung ausgegeben -
         // diese Methode erwartet, dass das gesuchte Zeichen auf jeden Fall auftreten wird
-        if (c == -1) {
-            throw new IllegalStateException("Can't find character '"
-                    + c + "' in remaining string: '" + this.getRemaining() + "'");
+        if (lastChar == -1) {
+            throw new IllegalStateException("Can't find character in remaining string: '" + this.getRemaining() + "'");
         }
         // Schließlich wird ein Array an Zeichen erstellt, basierend darauf, wie viele
         // vorher bis zum gesuchten Zeichen gelesen werden konnten
