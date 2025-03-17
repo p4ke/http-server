@@ -25,6 +25,9 @@ public final class HttpReader {
     // eine gesetzte Markierung "ungültig" wird
     private static final int MAX_LINE_LENGTH = 256;
 
+    // Die Markierung dafür, dass der Java Reader am Ende angekommen ist
+    private static final int END_MARKER = -1;
+
     // Der eigentliche Reader (mit mark-/reset-Unterstützung)
     private final Reader reader;
 
@@ -45,7 +48,7 @@ public final class HttpReader {
         // zudem wird gezählt, wie viele Zeichen bis zu dem Weißzeichen gelesen werden konnten
         int charCount = 0;
         int c;
-        while ((c = this.reader.read()) != -1 && !HttpDefinitions.isLWS(c)) {
+        while ((c = this.reader.read()) != END_MARKER && !HttpDefinitions.isLWS(c)) {
             ++charCount;
         }
         // Ruft gemeinsame Logik auf, um die Zeichenkette je nach Zeichenanzahl zu konstruieren
@@ -61,7 +64,7 @@ public final class HttpReader {
         // zudem wird gezählt, wie viele Zeichen bis zu dem Weißzeichen gelesen werden konnten
         int charCount = 0;
         int c;
-        while ((c = this.reader.read()) != -1 && c != searchChar) {
+        while ((c = this.reader.read()) != END_MARKER && c != searchChar) {
             // Überprüft zusätzlich, dass nicht das Ende einer Zeile erreicht wurde
             if (c == CR || c == LF) {
                 // Es wurde das Ende einer Zeile erreicht - der Reader wird
@@ -88,7 +91,7 @@ public final class HttpReader {
         // wird hier abgespeichert, ob das erste dieser Zeichen (Wagenrücklauf-Zeichen) gelesen wurde
         boolean endOfLineTrigger = false;
         int c;
-        while ((c = this.reader.read()) != -1) {
+        while ((c = this.reader.read()) != END_MARKER) {
             // Falls ein Wagenrücklaufs-Zeichen gelesen wurde, wird nun ein Zeilenvorschubs-Zeichen erwartet
             if (endOfLineTrigger) {
                 if (c == LF) {
@@ -122,7 +125,7 @@ public final class HttpReader {
         this.reader.reset();
         // Falls tatsächlich der Reader das Ende erreicht hat, wird eine Fehlermeldung ausgegeben -
         // diese Methode erwartet, dass das gesuchte Zeichen auf jeden Fall auftreten wird
-        if (lastChar == -1) {
+        if (lastChar == END_MARKER) {
             throw new IllegalStateException("Can't find character in remaining string");
         }
         // Schließlich wird ein Array an Zeichen erstellt, basierend darauf, wie viele
@@ -149,7 +152,7 @@ public final class HttpReader {
         boolean ret = false;
         // Erstmal wird so lange gelesen, bis das Ende des Readers erreicht wurde
         int c;
-        while ((c = this.reader.read()) != -1) {
+        while ((c = this.reader.read()) != END_MARKER) {
             // Falls das soeben gelesene Zeichen ein Weißzeichen ist,
             // wird diese Schleife abgebrochen
             if (!HttpDefinitions.isLWS(c)) {
@@ -160,7 +163,7 @@ public final class HttpReader {
             // Der Reader wird wieder markiert, um das finale Zurücksetzen zu gewährleisten
             this.reader.mark(1);
         }
-        if (c != -1) {
+        if (c != END_MARKER) {
             // Falls das Ende des Readers noch nicht erreicht wurde,
             // wird ein Zeichen zurückgesetzt, da ansonsten ein nicht-Weißzeichen
             // übersprungen wurde
