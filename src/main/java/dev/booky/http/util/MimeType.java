@@ -185,8 +185,25 @@ public class MimeType {
         return this.properties;
     }
 
+    public String buildPropertyString() {
+        if (this.properties.isEmpty()) {
+            // Falls keine Properties existieren, kann einfach ein leerer String zurückgegeben werden
+            return "";
+        }
+        final StringBuilder string = new StringBuilder();
+        for (final Map.Entry<String, String> property : this.properties.entrySet()) {
+            // Beispiel: ";charset=utf-8" - so kann die resultierende Zeichenkette am Ende
+            // einfach an den normalen MIME-Typ angehängt werden
+            string.append(';').append(property.getKey()).append('=').append(property.getValue());
+        }
+        return string.toString();
+    }
+
     @Override
     public String toString() {
-        return this.type + '/' + this.subtype;
+        // Beispiele:
+        // - "text/html;charset=utf-8" (UTF-8 kodierter Text)
+        // - "application/zip" (ZIP komprimiertes Binärarchiv)
+        return this.type + '/' + this.subtype + this.buildPropertyString();
     }
 }
